@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import sqlite3
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
@@ -44,6 +45,8 @@ URGENT_FLAGS = {
     "fever": "fever",
     "dehydration": "dehydration symptoms",
 }
+
+EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def utc_now() -> str:
@@ -90,6 +93,23 @@ def init_db() -> None:
                 suggestion TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(log_id) REFERENCES poop_logs(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS signups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                reason TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS donations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                amount_cents INTEGER NOT NULL,
+                message TEXT NOT NULL,
+                created_at TEXT NOT NULL
             );
             """
         )
@@ -168,6 +188,67 @@ def add_community_post(payload: dict[str, Any]) -> dict[str, Any]:
         )
         conn.commit()
         return {"ok": True, "id": int(cursor.lastrowid)}
+
+
+def add_signup(payload: dict[str, Any]) -> dict[str, Any]:
+    name = clean_text(payload.get("name"), "Gutty user")[:80]
+    email = clean_text(payload.get("email")).lower()[:160]
+    reason = clean_text(payload.get("reason"))
+    if not EMAIL_PATTERN.match(email):
+        raise ValueError("A valid email is required.")
+
+    with closing(db_connection(APP_DB)) as conn:
+        conn.execute(
+            """
+            INSERT INTO signups (name, email, reason, created_at)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(email) DO UPDATE SET
+                name = excluded.name,
+                reason = excluded.reason,
+                created_at = excluded.created_at
+            """,
+            (name, email, reason, utc_now()),
+        )
+        conn.commit()
+        row = conn.execute("SELECT id FROM signups WHERE email = ?", (email,)).fetchone()
+        signup_id = row["id"] if row else 0
+
+    return {"ok": True, "id": int(signup_id), "user": {"name": name, "email": email}}
+
+
+def add_donation(payload: dict[str, Any]) -> dict[str, Any]:
+    name = clean_text(payload.get("name"), "Gutty supporter")[:80]
+    email = clean_text(payload.get("email")).lower()[:160]
+    message = clean_text(payload.get("message"))
+    if not EMAIL_PATTERN.match(email):
+        raise ValueError("A valid email is required.")
+
+    try:
+        amount = float(payload.get("amount", 0))
+    except (TypeError, ValueError):
+        amount = 0
+    if amount <= 0:
+        raise ValueError("Choose a support amount greater than zero.")
+    if amount > 10000:
+        raise ValueError("Support amount is too high for this demo flow.")
+
+    amount_cents = int(round(amount * 100))
+    with closing(db_connection(APP_DB)) as conn:
+        cursor = conn.execute(
+            """
+            INSERT INTO donations (name, email, amount_cents, message, created_at)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (name, email, amount_cents, message, utc_now()),
+        )
+        conn.commit()
+
+    return {
+        "ok": True,
+        "id": int(cursor.lastrowid),
+        "amount": f"{amount_cents / 100:.2f}",
+        "message": "Donation pledge saved. Payment processing is not connected yet.",
+    }
 
 
 def decode_flags(raw: str) -> list[str]:
@@ -438,6 +519,24 @@ class GuttyHandler(SimpleHTTPRequestHandler):
                 result = add_community_post(self._read_json_body())
             except (ValueError, json.JSONDecodeError) as exc:
                 self._send_json({"error": f"Invalid community post: {exc}"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            self._send_json(result, status=HTTPStatus.CREATED)
+            return
+
+        if self.path == "/api/signup":
+            try:
+                result = add_signup(self._read_json_body())
+            except (ValueError, json.JSONDecodeError) as exc:
+                self._send_json({"error": f"Invalid signup: {exc}"}, status=HTTPStatus.BAD_REQUEST)
+                return
+            self._send_json(result, status=HTTPStatus.CREATED)
+            return
+
+        if self.path == "/api/donations":
+            try:
+                result = add_donation(self._read_json_body())
+            except (ValueError, json.JSONDecodeError) as exc:
+                self._send_json({"error": f"Invalid donation: {exc}"}, status=HTTPStatus.BAD_REQUEST)
                 return
             self._send_json(result, status=HTTPStatus.CREATED)
             return

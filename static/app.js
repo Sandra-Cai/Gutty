@@ -10,9 +10,18 @@ const patternListEl = document.getElementById("patternList");
 const recentListEl = document.getElementById("recentList");
 const communityListEl = document.getElementById("communityList");
 const statusEl = document.getElementById("status");
+const signupStatusEl = document.getElementById("signupStatus");
+const donationStatusEl = document.getElementById("donationStatus");
 const logFormEl = document.getElementById("logForm");
+const signupFormEl = document.getElementById("signupForm");
 const communityFormEl = document.getElementById("communityForm");
+const donationFormEl = document.getElementById("donationForm");
 const resetButtonEl = document.getElementById("resetButton");
+const appContentEl = document.getElementById("appContent");
+const appGateEl = document.getElementById("appGate");
+const amountButtons = document.querySelectorAll("[data-amount]");
+
+const SIGNUP_STORAGE_KEY = "gutty_signup";
 
 function escapeHtml(value) {
   return String(value ?? "")
@@ -30,6 +39,24 @@ function localDatetimeValue(date = new Date()) {
 
 function collectFlags(form) {
   return Array.from(form.querySelectorAll('input[name="flags"]:checked')).map((input) => input.value);
+}
+
+function savedSignup() {
+  try {
+    return JSON.parse(window.localStorage.getItem(SIGNUP_STORAGE_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function unlockApp(user) {
+  appContentEl.classList.remove("is-locked");
+  appContentEl.removeAttribute("aria-hidden");
+  appGateEl.hidden = true;
+  signupStatusEl.textContent = `Signed in as ${user.name || user.email}. Your gut may now speak.`;
+  signupFormEl.querySelector("button").textContent = "Signed up";
+  donationFormEl.elements.name.value = user.name || "";
+  donationFormEl.elements.email.value = user.email || "";
 }
 
 function renderPatterns(patterns) {
@@ -113,6 +140,27 @@ async function fetchSummary() {
   renderSummary(data);
 }
 
+signupFormEl.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new FormData(signupFormEl);
+  const payload = Object.fromEntries(formData.entries());
+
+  const response = await fetch("/api/signup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    signupStatusEl.textContent = data.error || "Could not sign you up yet.";
+    return;
+  }
+
+  window.localStorage.setItem(SIGNUP_STORAGE_KEY, JSON.stringify(data.user));
+  unlockApp(data.user);
+  await fetchSummary();
+});
+
 logFormEl.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(logFormEl);
@@ -167,6 +215,35 @@ communityFormEl.addEventListener("submit", async (event) => {
   await fetchSummary();
 });
 
+amountButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    donationFormEl.elements.amount.value = Number(button.dataset.amount).toFixed(2);
+    amountButtons.forEach((item) => item.classList.remove("is-selected"));
+    button.classList.add("is-selected");
+  });
+});
+
+donationFormEl.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const formData = new FormData(donationFormEl);
+  const payload = Object.fromEntries(formData.entries());
+  payload.amount = Number(payload.amount);
+
+  const response = await fetch("/api/donations", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json();
+  if (!response.ok) {
+    donationStatusEl.textContent = data.error || "Could not save that support pledge.";
+    return;
+  }
+
+  donationStatusEl.textContent = `Thank you. Your $${data.amount} support pledge was saved locally.`;
+  donationFormEl.elements.message.value = "";
+});
+
 resetButtonEl.addEventListener("click", async () => {
   const confirmed = window.confirm("Reset all local Gutty demo data?");
   if (!confirmed) {
@@ -179,6 +256,10 @@ resetButtonEl.addEventListener("click", async () => {
 });
 
 logFormEl.elements.logged_at.value = localDatetimeValue();
-fetchSummary().catch(() => {
-  statusEl.textContent = "Could not load Gutty.";
-});
+const user = savedSignup();
+if (user) {
+  unlockApp(user);
+  fetchSummary().catch(() => {
+    statusEl.textContent = "Could not load Gutty.";
+  });
+}
