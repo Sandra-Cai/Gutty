@@ -26,7 +26,7 @@ const SIGNUP_STORAGE_KEY = "gutty_signup";
 const LOG_STORAGE_KEY = "gutty_logs";
 const COMMUNITY_STORAGE_KEY = "gutty_community";
 const DONATION_STORAGE_KEY = "gutty_donations";
-const SUPABASE_URL = "https://svckjbdhzuxnarntrdu.supabase.co";
+const SUPABASE_URL = "https://sbvckjbdhzuxnarntrdu.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qKvK4JA9GtDb9UdimqWkjw_Pm2Ox7nV";
 const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
