@@ -35,12 +35,23 @@ Open `ios/Gutty/Gutty.xcodeproj` in Xcode, choose the `Gutty` scheme, and run it
 
 ## Supabase setup
 
-The live Vercel site saves signup forms and donation pledges to Supabase using the public publishable key in `app.js`. To enable database writes:
+The live Vercel site uses Supabase Auth for Google sign-in and saves donation pledges to Supabase using the public publishable key in `app.js`.
+
+To enable Google sign-in:
 
 1. Open Supabase and choose the Gutty project.
-2. Go to SQL Editor, create a new query, and paste `supabase/schema.sql`.
-3. Run the query.
-4. Test the signup form at `https://gutty.io`, then check Table Editor -> `signups`.
+2. Go to Authentication -> Providers -> Google.
+3. Enable Google and add the Google OAuth client ID and secret.
+4. Go to Authentication -> URL Configuration.
+5. Set Site URL to `https://gutty.io`.
+6. Add `https://gutty.io` to Redirect URLs.
+
+To enable the optional profile and donation tables:
+
+1. Go to SQL Editor, create a new query, and paste `supabase/schema.sql`.
+2. Run the query.
+3. Test Google sign-in at `https://gutty.io`, then check Authentication -> Users.
+4. Check Table Editor -> `signups` for the lightweight signup profile mirror and Table Editor -> `donation_pledges` for pledge forms.
 
 Poop logs stay in the visitor's browser for now so Gutty does not collect sensitive health details before real accounts, privacy controls, and export/delete flows are ready.
 

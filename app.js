@@ -14,6 +14,7 @@ const signupStatusEl = document.getElementById("signupStatus");
 const donationStatusEl = document.getElementById("donationStatus");
 const logFormEl = document.getElementById("logForm");
 const signupFormEl = document.getElementById("signupForm");
+const googleSignupButtonEl = document.getElementById("googleSignupButton");
 const communityFormEl = document.getElementById("communityForm");
 const donationFormEl = document.getElementById("donationForm");
 const resetButtonEl = document.getElementById("resetButton");
@@ -27,6 +28,7 @@ const COMMUNITY_STORAGE_KEY = "gutty_community";
 const DONATION_STORAGE_KEY = "gutty_donations";
 const SUPABASE_URL = "https://svckjbdhzuxnarntrdu.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qKvK4JA9GtDb9UdimqWkjw_Pm2Ox7nV";
+const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 const bristolLabels = {
   1: "Hard separate lumps",
@@ -108,6 +110,55 @@ async function supabaseInsert(table, row) {
 
   const data = await response.json();
   return Array.isArray(data) ? data[0] : data;
+}
+
+function userFromSupabase(authUser) {
+  const metadata = authUser?.user_metadata || {};
+  return {
+    name: metadata.full_name || metadata.name || authUser?.email?.split("@")[0] || "Gutty user",
+    email: authUser?.email || "",
+    provider: "google",
+  };
+}
+
+async function rememberAuthenticatedUser(authUser) {
+  if (!authUser?.email) return null;
+
+  const user = userFromSupabase(authUser);
+  writeStorage(SIGNUP_STORAGE_KEY, user);
+  unlockApp(user);
+  signupStatusEl.textContent = `Signed in with Google as ${user.name || user.email}.`;
+
+  try {
+    await supabaseInsert("signups", {
+      name: user.name,
+      email: user.email,
+      reason: "google signup",
+    });
+  } catch (error) {
+    console.warn("Supabase signup profile save failed", error);
+  }
+
+  await fetchSummary();
+  return user;
+}
+
+async function initializeSupabaseAuth() {
+  if (!supabaseClient) {
+    signupStatusEl.textContent = "Google sign-in is loading. Try again in a moment.";
+    return;
+  }
+
+  const { data } = await supabaseClient.auth.getSession();
+  if (data?.session?.user) {
+    await rememberAuthenticatedUser(data.session.user);
+  }
+
+  supabaseClient.auth.onAuthStateChange((_event, session) => {
+    if (session?.user) {
+      rememberAuthenticatedUser(session.user);
+    }
+  });
 }
 
 function unlockApp(user) {
@@ -255,6 +306,33 @@ async function fetchSummary() {
   }
 }
 
+googleSignupButtonEl?.addEventListener("click", async () => {
+  if (!supabaseClient) {
+    signupStatusEl.textContent = "Google sign-in is still loading. Try again in a moment.";
+    return;
+  }
+
+  googleSignupButtonEl.disabled = true;
+  signupStatusEl.textContent = "Opening Google sign-in...";
+
+  const { error } = await supabaseClient.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin,
+      queryParams: {
+        access_type: "offline",
+        prompt: "consent",
+      },
+    },
+  });
+
+  if (error) {
+    googleSignupButtonEl.disabled = false;
+    signupStatusEl.textContent = "Google sign-in needs to be enabled in Supabase first.";
+    console.warn("Google sign-in failed", error);
+  }
+});
+
 signupFormEl.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = Object.fromEntries(new FormData(signupFormEl).entries());
@@ -374,8 +452,11 @@ resetButtonEl.addEventListener("click", async () => {
 });
 
 logFormEl.elements.logged_at.value = localDatetimeValue();
+initializeSupabaseAuth();
 const user = savedSignup();
 if (user) {
   unlockApp(user);
+  fetchSummary();
+} else {
   fetchSummary();
 }

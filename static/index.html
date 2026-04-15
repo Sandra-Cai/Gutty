@@ -19,7 +19,7 @@
           <a href="#donate">Donate</a>
           <a href="#safety">Safety</a>
         </div>
-        <a class="nav-action" href="#signupForm">Sign up</a>
+        <a class="nav-action" href="#signup">Sign up</a>
       </nav>
 
       <section class="hero">
@@ -31,29 +31,36 @@
             situation, watch the pattern, and act before your body starts sending all-caps messages.
           </p>
           <div class="hero-actions">
-            <a class="hero-button" href="#signupForm">Start free</a>
+            <a class="hero-button" href="#signup">Start free</a>
             <span>Private local MVP</span>
           </div>
         </div>
-        <aside class="signup-panel" aria-label="Sign up for Gutty">
+        <aside id="signup" class="signup-panel" aria-label="Sign up for Gutty">
           <p class="kicker">Start free</p>
-          <h2>Sign up to use Gutty</h2>
+          <h2>Sign up with Google</h2>
           <p>
-            Create your free local Gutty account, then start logging. Your poop data stays on this device in
+            Use your Google account to create your free Gutty account. Your poop logs stay on this device in
             this MVP.
           </p>
-          <form id="signupForm" class="gut-form">
+          <div class="google-auth-block">
+            <button id="googleSignupButton" type="button" class="google-button" aria-label="Continue with Google">
+              <span class="google-mark">G</span>
+              Continue with Google
+            </button>
+          </div>
+          <form id="signupForm" class="gut-form backup-signup" hidden>
             <label>
               Name
-              <input name="name" type="text" autocomplete="name" placeholder="Sandra" required />
+              <input name="name" type="text" autocomplete="name" placeholder="Sandra" />
             </label>
             <label>
               Email
-              <input name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+              <input name="email" type="email" autocomplete="email" placeholder="you@example.com" />
             </label>
             <label>
               What are you tracking?
               <select name="reason">
+                <option value="google signup">Google signup</option>
                 <option value="building a baseline">Building a baseline</option>
                 <option value="constipation patterns">Constipation patterns</option>
                 <option value="loose stool patterns">Loose stool patterns</option>
@@ -63,7 +70,7 @@
             </label>
             <button type="submit" class="primary">Use Gutty free</button>
           </form>
-          <p id="signupStatus" class="status-pill">No payment. No shame. Just data.</p>
+          <p id="signupStatus" class="status-pill">No payment. No shame. Just your Google account.</p>
         </aside>
       </section>
 
@@ -332,6 +339,7 @@
       </div>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <script src="/app.js" defer></script>
   </body>
 </html>

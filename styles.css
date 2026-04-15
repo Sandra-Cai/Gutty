@@ -510,6 +510,40 @@ button:hover,
   color: #050607;
 }
 
+.google-auth-block {
+  margin: 20px 0 4px;
+}
+
+.google-button {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #d8dfe0;
+  background: #ffffff;
+  color: #101416;
+}
+
+.google-mark {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid #d8dfe0;
+  border-radius: 50%;
+  font-weight: 900;
+}
+
+.google-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.backup-signup[hidden] {
+  display: none;
+}
+
 .danger {
   margin-top: 14px;
   background: var(--danger);
