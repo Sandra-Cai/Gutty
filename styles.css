@@ -544,6 +544,50 @@ button:hover,
   display: none;
 }
 
+.signed-in-panel {
+  display: grid;
+  gap: 7px;
+  margin: 20px 0 4px;
+  padding: 14px;
+  border: 1px solid rgba(41, 141, 66, 0.28);
+  border-radius: 8px;
+  background: rgba(41, 141, 66, 0.1);
+  color: #101416;
+}
+
+.signed-in-panel[hidden] {
+  display: none;
+}
+
+.signed-in-label {
+  color: #297d42;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.signed-in-panel strong,
+.signed-in-panel span {
+  overflow-wrap: anywhere;
+}
+
+.text-button {
+  justify-self: start;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #297d42;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.text-button:hover {
+  box-shadow: none;
+  text-decoration: underline;
+  transform: none;
+}
+
 .danger {
   margin-top: 14px;
   background: var(--danger);

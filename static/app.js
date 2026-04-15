@@ -12,6 +12,14 @@ const communityListEl = document.getElementById("communityList");
 const statusEl = document.getElementById("status");
 const signupStatusEl = document.getElementById("signupStatus");
 const donationStatusEl = document.getElementById("donationStatus");
+const signupKickerEl = document.getElementById("signupKicker");
+const signupTitleEl = document.getElementById("signupTitle");
+const signupCopyEl = document.getElementById("signupCopy");
+const googleAuthBlockEl = document.getElementById("googleAuthBlock");
+const signedInPanelEl = document.getElementById("signedInPanel");
+const signedInNameEl = document.getElementById("signedInName");
+const signedInEmailEl = document.getElementById("signedInEmail");
+const signOutButtonEl = document.getElementById("signOutButton");
 const logFormEl = document.getElementById("logForm");
 const signupFormEl = document.getElementById("signupForm");
 const googleSignupButtonEl = document.getElementById("googleSignupButton");
@@ -165,10 +173,30 @@ function unlockApp(user) {
   appContentEl.classList.remove("is-locked");
   appContentEl.removeAttribute("aria-hidden");
   appGateEl.hidden = true;
-  signupStatusEl.textContent = `Signed in as ${user.name || user.email}. Your gut may now speak.`;
+  signupKickerEl.textContent = "Account ready";
+  signupTitleEl.textContent = "You're signed in";
+  signupCopyEl.textContent = "The analyzer is unlocked. Your poop logs stay on this device until Gutty has full account privacy controls.";
+  googleAuthBlockEl.hidden = true;
+  signedInPanelEl.hidden = false;
+  signedInNameEl.textContent = user.name || "Gutty user";
+  signedInEmailEl.textContent = user.email || "Google account connected";
+  signupStatusEl.textContent = "Ready to log your gut signals.";
   signupFormEl.querySelector("button").textContent = "Signed up";
   donationFormEl.elements.name.value = user.name || "";
   donationFormEl.elements.email.value = user.email || "";
+}
+
+function lockApp() {
+  appContentEl.classList.add("is-locked");
+  appContentEl.setAttribute("aria-hidden", "true");
+  appGateEl.hidden = false;
+  signupKickerEl.textContent = "Start free";
+  signupTitleEl.textContent = "Sign up with Google";
+  signupCopyEl.textContent = "Use your Google account to create your free Gutty account. Your poop logs stay on this device in this MVP.";
+  googleAuthBlockEl.hidden = false;
+  signedInPanelEl.hidden = true;
+  googleSignupButtonEl.disabled = false;
+  signupStatusEl.textContent = "No payment. No shame. Just your Google account.";
 }
 
 function renderPatterns(patterns) {
@@ -331,6 +359,16 @@ googleSignupButtonEl?.addEventListener("click", async () => {
     signupStatusEl.textContent = "Google sign-in needs to be enabled in Supabase first.";
     console.warn("Google sign-in failed", error);
   }
+});
+
+signOutButtonEl?.addEventListener("click", async () => {
+  if (supabaseClient) {
+    await supabaseClient.auth.signOut();
+  }
+
+  window.localStorage.removeItem(SIGNUP_STORAGE_KEY);
+  lockApp();
+  await fetchSummary();
 });
 
 signupFormEl.addEventListener("submit", async (event) => {

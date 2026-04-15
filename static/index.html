@@ -36,17 +36,23 @@
           </div>
         </div>
         <aside id="signup" class="signup-panel" aria-label="Sign up for Gutty">
-          <p class="kicker">Start free</p>
-          <h2>Sign up with Google</h2>
-          <p>
+          <p class="kicker" id="signupKicker">Start free</p>
+          <h2 id="signupTitle">Sign up with Google</h2>
+          <p id="signupCopy">
             Use your Google account to create your free Gutty account. Your poop logs stay on this device in
             this MVP.
           </p>
-          <div class="google-auth-block">
+          <div id="googleAuthBlock" class="google-auth-block">
             <button id="googleSignupButton" type="button" class="google-button" aria-label="Continue with Google">
               <span class="google-mark">G</span>
               Continue with Google
             </button>
+          </div>
+          <div id="signedInPanel" class="signed-in-panel" hidden>
+            <span class="signed-in-label">Google account connected</span>
+            <strong id="signedInName">Signed in</strong>
+            <span id="signedInEmail"></span>
+            <button id="signOutButton" type="button" class="text-button">Sign out</button>
           </div>
           <form id="signupForm" class="gut-form backup-signup" hidden>
             <label>
