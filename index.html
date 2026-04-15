@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gutty</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <nav class="top-nav" aria-label="Gutty navigation">
+        <div class="brand-row">
+          <span class="brand-mark">G</span>
+          <span class="brand-name">Gutty</span>
+        </div>
+        <div class="nav-links">
+          <a href="#analyzer">Analyzer</a>
+          <a href="#community">Community</a>
+          <a href="#donate">Donate</a>
+          <a href="#safety">Safety</a>
+        </div>
+        <a class="nav-action" href="#signupForm">Sign up</a>
+      </nav>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Free gut health analyzer</p>
+          <h1>Your gut has signals. Gutty turns them into a dashboard.</h1>
+          <p class="lede">
+            Everyone says trust your gut. But how do you know your gut is even trustworthy? Log the poop
+            situation, watch the pattern, and act before your body starts sending all-caps messages.
+          </p>
+          <div class="hero-actions">
+            <a class="hero-button" href="#signupForm">Start free</a>
+            <span>Private local MVP</span>
+          </div>
+        </div>
+        <aside class="signup-panel" aria-label="Sign up for Gutty">
+          <p class="kicker">Start free</p>
+          <h2>Sign up to use Gutty</h2>
+          <p>
+            Create your free local Gutty account, then start logging. Your poop data stays on this device in
+            this MVP.
+          </p>
+          <form id="signupForm" class="gut-form">
+            <label>
+              Name
+              <input name="name" type="text" autocomplete="name" placeholder="Sandra" required />
+            </label>
+            <label>
+              Email
+              <input name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+            </label>
+            <label>
+              What are you tracking?
+              <select name="reason">
+                <option value="building a baseline">Building a baseline</option>
+                <option value="constipation patterns">Constipation patterns</option>
+                <option value="loose stool patterns">Loose stool patterns</option>
+                <option value="food trigger clues">Food trigger clues</option>
+                <option value="general gut curiosity">General gut curiosity</option>
+              </select>
+            </label>
+            <button type="submit" class="primary">Use Gutty free</button>
+          </form>
+          <p id="signupStatus" class="status-pill">No payment. No shame. Just data.</p>
+        </aside>
+      </section>
+
+      <section class="exchange-strip" aria-label="Gutty highlights">
+        <article>
+          <span class="label">Tracked signals</span>
+          <strong>8</strong>
+          <p>Bristol, color, amount, urgency, comfort, hydration, fiber, stress.</p>
+        </article>
+        <article>
+          <span class="label">Community mode</span>
+          <strong>Opt-in</strong>
+          <p>Publish a poop note only when you choose to invite suggestions.</p>
+        </article>
+        <article>
+          <span class="label">Safety</span>
+          <strong>Red flags</strong>
+          <p>Blood, black/tarry stool, fever, severe pain, and dehydration interrupt the joke.</p>
+        </article>
+      </section>
+
+      <section class="market-preview" aria-label="Gutty signal board">
+        <div class="signal-board">
+          <div class="signal-row positive">
+            <span>Type 4</span>
+            <strong>Smooth zone</strong>
+            <em>+ balanced</em>
+          </div>
+          <div class="signal-row">
+            <span>Hydration</span>
+            <strong>4 / 5</strong>
+            <em>watch</em>
+          </div>
+          <div class="signal-row warning">
+            <span>Stress</span>
+            <strong>Rising</strong>
+            <em>test routine</em>
+          </div>
+          <div class="signal-row urgent">
+            <span>Red flags</span>
+            <strong>Clinician</strong>
+            <em>do not crowdsource</em>
+          </div>
+        </div>
+        <img
+          src="https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&w=900&q=80"
+          alt="Health tracking notes on a desk"
+        />
+      </section>
+
+      <section id="appGate" class="locked-message" aria-live="polite">
+        <h2>Sign up above to unlock the analyzer.</h2>
+        <p>Gutty is free to use. We ask for signup first so people enter the app intentionally.</p>
+      </section>
+
+      <div id="appContent" class="app-content is-locked" aria-hidden="true">
+      <section id="analyzer" class="grid top-grid" aria-label="Gutty overview">
+        <article class="score-panel">
+          <p class="kicker">Gut check</p>
+          <div class="score-row">
+            <strong id="gutScore">50</strong>
+            <span>/100</span>
+          </div>
+          <h2 id="gutHeadline">Gutty is warming up</h2>
+          <p id="gutSummary">Log your first situation to start learning your baseline.</p>
+          <div class="next-step-box">
+            <span class="label">Next move</span>
+            <p id="nextStep">The throne awaits data.</p>
+          </div>
+        </article>
+
+        <article class="metric-strip" aria-label="Stats">
+          <div class="metric-block">
+            <span class="label">Total logs</span>
+            <strong id="logCount">0</strong>
+          </div>
+          <div class="metric-block">
+            <span class="label">This week</span>
+            <strong id="weekCount">0</strong>
+          </div>
+          <div class="metric-block">
+            <span class="label">Avg Bristol</span>
+            <strong id="avgBristol">0</strong>
+          </div>
+          <div class="metric-block">
+            <span class="label">Comfort</span>
+            <strong id="avgComfort">0</strong>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid main-grid">
+        <article class="tool-panel">
+          <div class="section-head">
+            <p class="kicker">Field report</p>
+            <h2>Log your poop situation</h2>
+          </div>
+          <form id="logForm" class="gut-form">
+            <label>
+              When
+              <input name="logged_at" type="datetime-local" />
+            </label>
+            <label>
+              Bristol type
+              <select name="bristol_type" required>
+                <option value="1">1 - Hard separate lumps</option>
+                <option value="2">2 - Lumpy sausage</option>
+                <option value="3">3 - Cracked sausage</option>
+                <option value="4" selected>4 - Smooth soft sausage</option>
+                <option value="5">5 - Soft blobs</option>
+                <option value="6">6 - Mushy fluffy pieces</option>
+                <option value="7">7 - Watery liquid</option>
+              </select>
+            </label>
+            <div class="form-row">
+              <label>
+                Color
+                <select name="color">
+                  <option value="brown">Brown</option>
+                  <option value="green">Green</option>
+                  <option value="yellow">Yellow</option>
+                  <option value="black">Black</option>
+                  <option value="red">Red</option>
+                  <option value="pale">Pale</option>
+                </select>
+              </label>
+              <label>
+                Amount
+                <select name="amount">
+                  <option value="small">Small</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </label>
+            </div>
+            <div class="slider-grid">
+              <label>Urgency <input name="urgency" type="range" min="1" max="5" value="3" /></label>
+              <label>Comfort <input name="comfort" type="range" min="1" max="5" value="4" /></label>
+              <label>Hydration <input name="hydration" type="range" min="1" max="5" value="3" /></label>
+              <label>Fiber <input name="fiber" type="range" min="1" max="5" value="3" /></label>
+              <label>Stress <input name="stress" type="range" min="1" max="5" value="3" /></label>
+            </div>
+            <fieldset>
+              <legend>Red flags</legend>
+              <label><input name="flags" type="checkbox" value="blood" /> Blood</label>
+              <label><input name="flags" type="checkbox" value="black_tarry" /> Black or tarry</label>
+              <label><input name="flags" type="checkbox" value="severe_pain" /> Severe pain</label>
+              <label><input name="flags" type="checkbox" value="fever" /> Fever</label>
+              <label><input name="flags" type="checkbox" value="dehydration" /> Dehydration</label>
+            </fieldset>
+            <label>
+              Notes
+              <textarea name="notes" rows="4" placeholder="What did you eat, drink, feel, or regret?"></textarea>
+            </label>
+            <button type="submit" class="primary">Analyze this poop</button>
+          </form>
+          <p id="status" class="status-pill">Ready when your gut is.</p>
+        </article>
+
+        <article class="tool-panel">
+          <div class="section-head">
+            <p class="kicker">Analyzer</p>
+            <h2>What Gutty noticed</h2>
+          </div>
+          <div id="patternList" class="pattern-list"></div>
+          <div class="care-note">
+            Gutty can notice patterns. Gutty cannot diagnose you. Blood, tarry black stool, severe pain,
+            fever, dehydration, or symptoms that persist deserve a real clinician.
+          </div>
+        </article>
+      </section>
+
+      <section id="community" class="grid lower-grid">
+        <article id="safety" class="tool-panel">
+          <div class="section-head">
+            <p class="kicker">Community</p>
+            <h2>Publish a poop note</h2>
+          </div>
+          <form id="communityForm" class="gut-form">
+            <label>
+              Display name
+              <input name="display_name" type="text" placeholder="anonymous gut scout" />
+            </label>
+            <label>
+              Your situation
+              <textarea name="story" rows="4" placeholder="Publicize your own poop, with dignity or without."></textarea>
+            </label>
+            <label>
+              Suggestion you are inviting
+              <textarea name="suggestion" rows="3" placeholder="Ask for food ideas, hydration routines, or what to track next."></textarea>
+            </label>
+            <button type="submit" class="secondary">Publish locally</button>
+          </form>
+        </article>
+
+        <article class="tool-panel">
+          <div class="section-head">
+            <p class="kicker">Recent logs</p>
+            <h2>Your private poop ledger</h2>
+          </div>
+          <div id="recentList" class="recent-list"></div>
+        </article>
+      </section>
+
+      <section class="grid community-grid">
+        <article class="tool-panel">
+          <div class="section-head">
+            <p class="kicker">Gut wall</p>
+            <h2>Community suggestions</h2>
+          </div>
+          <div id="communityList" class="community-list"></div>
+        </article>
+        <article class="tool-panel launch-card">
+          <p class="kicker">Launch line</p>
+          <h2>Everyone is saying you should trust your gut.</h2>
+          <p>
+            But how do you know your gut is even trustworthy? Introducing Gutty: a free gut health analyzer
+            for everyone to develop a healthier gut by logging the poop situation.
+          </p>
+          <button id="resetButton" class="danger">Reset local demo data</button>
+        </article>
+      </section>
+
+      <section id="donate" class="donation-section">
+        <article class="donation-copy">
+          <p class="kicker">Pay what you want</p>
+          <h2>Gutty stays 100% free.</h2>
+          <p>
+            Donations are optional support for hosting, maintenance, research, and the questionable courage it
+            takes to build public-interest poop software.
+          </p>
+        </article>
+        <article class="donation-card">
+          <form id="donationForm" class="gut-form">
+            <div class="amount-grid" aria-label="Donation amounts">
+              <button type="button" data-amount="3">$3</button>
+              <button type="button" data-amount="7">$7</button>
+              <button type="button" data-amount="15">$15</button>
+              <button type="button" data-amount="25">$25</button>
+            </div>
+            <label>
+              Custom amount
+              <input name="amount" type="number" min="1" max="10000" step="0.01" value="7.00" required />
+            </label>
+            <div class="form-row">
+              <label>
+                Name
+                <input name="name" type="text" autocomplete="name" placeholder="Gutty supporter" required />
+              </label>
+              <label>
+                Email
+                <input name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+              </label>
+            </div>
+            <label>
+              Note
+              <textarea name="message" rows="3" placeholder="Keep Gutty free for everyone."></textarea>
+            </label>
+            <button type="submit" class="primary">Pledge support</button>
+          </form>
+          <p id="donationStatus" class="status-pill">
+            Demo pledge only. Add Stripe, PayPal, or Ko-fi before collecting real payments.
+          </p>
+        </article>
+      </section>
+      </div>
+    </main>
+
+    <script src="/app.js" defer></script>
+  </body>
+</html>
