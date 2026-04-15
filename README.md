@@ -33,6 +33,17 @@ The native SwiftUI app lives in `ios/Gutty`.
 
 Open `ios/Gutty/Gutty.xcodeproj` in Xcode, choose the `Gutty` scheme, and run it on an iPhone simulator or device. The iOS app mirrors the web MVP with local signup, poop logging, gut scoring, community notes, and optional support pledges. Pledges are stored locally and do not process real payments yet.
 
+## Supabase setup
+
+The live Vercel site saves signup forms and donation pledges to Supabase using the public publishable key in `app.js`. To enable database writes:
+
+1. Open Supabase and choose the Gutty project.
+2. Go to SQL Editor, create a new query, and paste `supabase/schema.sql`.
+3. Run the query.
+4. Test the signup form at `https://gutty.io`, then check Table Editor -> `signups`.
+
+Poop logs stay in the visitor's browser for now so Gutty does not collect sensitive health details before real accounts, privacy controls, and export/delete flows are ready.
+
 ## Medical note
 
 Gutty is for personal tracking and general wellness education. It is not a diagnosis, treatment plan, or medical advice. Red flags like blood in stool, tarry black stool, severe abdominal pain, fever, dehydration, pale stool that persists, or symptoms that do not resolve should be discussed with a medical professional.
@@ -48,7 +59,7 @@ Gutty is for personal tracking and general wellness education. It is not a diagn
 
 ## Current limitations
 
-- Signup, donation pledges, and community posts are local-only demo data
+- Signup and donation pledges can save to Supabase when `supabase/schema.sql` has been run; poop logs and community posts stay browser-local in the static Vercel build
 - Donation pledges do not process real payments until a provider such as Stripe, PayPal, or Ko-fi is connected
 - The analyzer uses simple rule-based wellness heuristics
 - No real authentication, export, reminders, or clinician-facing reports yet

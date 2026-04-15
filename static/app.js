@@ -25,6 +25,8 @@ const SIGNUP_STORAGE_KEY = "gutty_signup";
 const LOG_STORAGE_KEY = "gutty_logs";
 const COMMUNITY_STORAGE_KEY = "gutty_community";
 const DONATION_STORAGE_KEY = "gutty_donations";
+const SUPABASE_URL = "https://svckjbdhzuxnarntrdu.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qKvK4JA9GtDb9UdimqWkjw_Pm2Ox7nV";
 
 const bristolLabels = {
   1: "Hard separate lumps",
@@ -85,6 +87,27 @@ async function apiRequest(path, payload) {
   } catch (error) {
     return null;
   }
+}
+
+async function supabaseInsert(table, row) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_PUBLISHABLE_KEY,
+      Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify(row),
+  });
+
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message || `Could not save ${table}`);
+  }
+
+  const data = await response.json();
+  return Array.isArray(data) ? data[0] : data;
 }
 
 function unlockApp(user) {
@@ -235,10 +258,30 @@ async function fetchSummary() {
 signupFormEl.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = Object.fromEntries(new FormData(signupFormEl).entries());
-  const data = await apiRequest("/api/signup", payload);
-  const user = data?.user || { name: payload.name || "Gutty user", email: payload.email };
+  const user = { name: payload.name || "Gutty user", email: payload.email };
+  let savedToSupabase = false;
+
+  try {
+    await supabaseInsert("signups", {
+      name: user.name,
+      email: user.email,
+      reason: payload.reason || "",
+    });
+    savedToSupabase = true;
+  } catch (error) {
+    console.warn("Supabase signup save failed", error);
+  }
+
+  if (!savedToSupabase) {
+    const data = await apiRequest("/api/signup", payload);
+    savedToSupabase = Boolean(data?.user);
+  }
+
   writeStorage(SIGNUP_STORAGE_KEY, user);
   unlockApp(user);
+  signupStatusEl.textContent = savedToSupabase
+    ? `Signed in as ${user.name || user.email}. Signup saved.`
+    : `Signed in as ${user.name || user.email}. Saved in this browser.`;
   await fetchSummary();
 });
 
@@ -291,11 +334,32 @@ donationFormEl.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = Object.fromEntries(new FormData(donationFormEl).entries());
   payload.amount = Number(payload.amount);
-  const data = await apiRequest("/api/donations", payload);
+  const pledge = {
+    name: payload.name || "Gutty supporter",
+    email: payload.email,
+    amount: payload.amount,
+    message: payload.message || "",
+  };
+  let savedToSupabase = false;
+
+  try {
+    await supabaseInsert("donation_pledges", pledge);
+    savedToSupabase = true;
+  } catch (error) {
+    console.warn("Supabase donation save failed", error);
+  }
+
+  if (!savedToSupabase) {
+    const data = await apiRequest("/api/donations", payload);
+    savedToSupabase = Boolean(data?.amount);
+  }
+
   const donations = readStorage(DONATION_STORAGE_KEY, []);
   donations.unshift({ id: crypto.randomUUID(), created_at: new Date().toISOString(), ...payload });
   writeStorage(DONATION_STORAGE_KEY, donations);
-  donationStatusEl.textContent = data?.amount ? `Thank you. Your $${data.amount} support pledge was saved locally.` : `Thank you. Your $${payload.amount.toFixed(2)} support pledge was saved in this browser.`;
+  donationStatusEl.textContent = savedToSupabase
+    ? `Thank you. Your $${payload.amount.toFixed(2)} support pledge was saved.`
+    : `Thank you. Your $${payload.amount.toFixed(2)} support pledge was saved in this browser.`;
   donationFormEl.elements.message.value = "";
 });
 
