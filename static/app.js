@@ -28,6 +28,7 @@ const donationFormEl = document.getElementById("donationForm");
 const resetButtonEl = document.getElementById("resetButton");
 const appContentEl = document.getElementById("appContent");
 const appGateEl = document.getElementById("appGate");
+const authOnlyEls = document.querySelectorAll("[data-auth-only]");
 const amountButtons = document.querySelectorAll("[data-amount]");
 
 const SIGNUP_STORAGE_KEY = "gutty_signup";
@@ -170,8 +171,12 @@ async function initializeSupabaseAuth() {
 }
 
 function unlockApp(user) {
+  appContentEl.hidden = false;
   appContentEl.classList.remove("is-locked");
   appContentEl.removeAttribute("aria-hidden");
+  authOnlyEls.forEach((element) => {
+    element.hidden = false;
+  });
   appGateEl.hidden = true;
   signupKickerEl.textContent = "Account ready";
   signupTitleEl.textContent = "You're signed in";
@@ -187,8 +192,12 @@ function unlockApp(user) {
 }
 
 function lockApp() {
+  appContentEl.hidden = true;
   appContentEl.classList.add("is-locked");
   appContentEl.setAttribute("aria-hidden", "true");
+  authOnlyEls.forEach((element) => {
+    element.hidden = true;
+  });
   appGateEl.hidden = false;
   signupKickerEl.textContent = "Start free";
   signupTitleEl.textContent = "Sign up with Google";
@@ -496,5 +505,6 @@ if (user) {
   unlockApp(user);
   fetchSummary();
 } else {
+  lockApp();
   fetchSummary();
 }

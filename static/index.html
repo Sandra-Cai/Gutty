@@ -13,7 +13,7 @@
           <span class="brand-mark">G</span>
           <span class="brand-name">Gutty</span>
         </div>
-        <div class="nav-links">
+        <div class="nav-links" data-auth-only hidden>
           <a href="#analyzer">Analyzer</a>
           <a href="#community">Community</a>
           <a href="#donate">Donate</a>
@@ -80,7 +80,7 @@
         </aside>
       </section>
 
-      <section class="exchange-strip" aria-label="Gutty highlights">
+      <section class="exchange-strip" aria-label="Gutty highlights" data-auth-only hidden>
         <article>
           <span class="label">Tracked signals</span>
           <strong>8</strong>
@@ -98,7 +98,7 @@
         </article>
       </section>
 
-      <section class="market-preview" aria-label="Gutty signal board">
+      <section class="market-preview" aria-label="Gutty signal board" data-auth-only hidden>
         <div class="signal-board">
           <div class="signal-row positive">
             <span>Type 4</span>
@@ -128,11 +128,11 @@
       </section>
 
       <section id="appGate" class="locked-message" aria-live="polite">
-        <h2>Sign up above to unlock the analyzer.</h2>
-        <p>Gutty is free to use. We ask for signup first so people enter the app intentionally.</p>
+        <h2>Sign up above to unlock Gutty.</h2>
+        <p>The analyzer, community, donation pledge form, and private poop ledger appear after Google sign-in.</p>
       </section>
 
-      <div id="appContent" class="app-content is-locked" aria-hidden="true">
+      <div id="appContent" class="app-content is-locked" aria-hidden="true" hidden>
       <section id="analyzer" class="grid top-grid" aria-label="Gutty overview">
         <article class="score-panel">
           <p class="kicker">Gut check</p>
