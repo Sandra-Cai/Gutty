@@ -9,6 +9,9 @@ const redFlagCountEl = document.getElementById("redFlagCount");
 const avgBristolEl = document.getElementById("avgBristol");
 const avgComfortEl = document.getElementById("avgComfort");
 const patternListEl = document.getElementById("patternList");
+const triggerListEl = document.getElementById("triggerList");
+const trendPanelEl = document.getElementById("trendPanel");
+const heatmapPanelEl = document.getElementById("heatmapPanel");
 const recentListEl = document.getElementById("recentList");
 const communityListEl = document.getElementById("communityList");
 const statusEl = document.getElementById("status");
@@ -29,6 +32,8 @@ const actionPlanEl = document.getElementById("actionPlan");
 const exportCsvButtonEl = document.getElementById("exportCsvButton");
 const exportJsonButtonEl = document.getElementById("exportJsonButton");
 const copySummaryButtonEl = document.getElementById("copySummaryButton");
+const doctorReportButtonEl = document.getElementById("doctorReportButton");
+const quickPresetButtons = document.querySelectorAll("[data-preset]");
 const logFormEl = document.getElementById("logForm");
 const signupFormEl = document.getElementById("signupForm");
 const googleSignupButtonEl = document.getElementById("googleSignupButton");
@@ -115,6 +120,21 @@ function daysAgoLabel(value) {
 
 function collectFlags(form) {
   return Array.from(form.querySelectorAll('input[name="flags"]:checked')).map((input) => input.value);
+}
+
+function tokenizeList(value) {
+  return String(value || "")
+    .split(/[;,]/)
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function titleCase(value) {
+  return String(value || "")
+    .split(" ")
+    .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
+    .join(" ");
 }
 
 function savedSignup() {
@@ -277,6 +297,8 @@ function renderRecent(logs) {
       <div>
         <h3>Type ${escapeHtml(log.bristol_type)}: ${escapeHtml(log.bristol_label)}</h3>
         <p>${escapeHtml(log.color)} · ${escapeHtml(log.amount)} · urgency ${escapeHtml(log.urgency)}/5 · comfort ${escapeHtml(log.comfort)}/5</p>
+        ${log.foods?.length ? `<p><span class="label">Foods</span> ${escapeHtml(log.foods.join(", "))}</p>` : ""}
+        ${log.symptoms?.length ? `<p><span class="label">Symptoms</span> ${escapeHtml(log.symptoms.join(", "))}</p>` : ""}
         ${log.notes ? `<p>${escapeHtml(log.notes)}</p>` : ""}
         ${flags}
       </div>
@@ -305,6 +327,67 @@ function renderCommunity(posts) {
       <p><span class="label">Asking for</span>${escapeHtml(post.suggestion)}</p>
     `;
     communityListEl.appendChild(item);
+  });
+}
+
+function countBy(items) {
+  return items.reduce((counts, item) => {
+    counts[item] = (counts[item] || 0) + 1;
+    return counts;
+  }, {});
+}
+
+function buildTriggerInsights(logs) {
+  const rows = [];
+  const foods = new Map();
+  logs.forEach((log) => {
+    const rough = Number(log.comfort) <= 2 || [1, 2, 6, 7].includes(Number(log.bristol_type)) || (log.flags || []).length > 0;
+    (log.foods || []).forEach((food) => {
+      if (!foods.has(food)) foods.set(food, { name: food, total: 0, rough: 0 });
+      const item = foods.get(food);
+      item.total += 1;
+      if (rough) item.rough += 1;
+    });
+  });
+
+  foods.forEach((item) => {
+    if (item.total >= 2) {
+      rows.push({ ...item, rate: item.rough / item.total });
+    }
+  });
+
+  return rows.sort((a, b) => b.rate - a.rate || b.total - a.total).slice(0, 5);
+}
+
+function buildTrendSnapshot(logs) {
+  const recent = logs.slice(0, 14);
+  const bristolCounts = countBy(recent.map((log) => String(log.bristol_type)));
+  const symptomCounts = countBy(recent.flatMap((log) => log.symptoms || []));
+  const topSymptoms = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const maxBristol = Math.max(1, ...Object.values(bristolCounts));
+
+  return {
+    bristol: [1, 2, 3, 4, 5, 6, 7].map((type) => ({ type, count: bristolCounts[String(type)] || 0, max: maxBristol })),
+    topSymptoms,
+  };
+}
+
+function buildHeatmap(logs) {
+  const byDay = new Map();
+  logs.forEach((log) => {
+    const day = formatDay(new Date(log.logged_at));
+    const current = byDay.get(day) || { count: 0, redFlags: 0, rough: 0 };
+    current.count += 1;
+    current.redFlags += log.flags?.length || 0;
+    if (Number(log.comfort) <= 2 || [1, 2, 6, 7].includes(Number(log.bristol_type))) current.rough += 1;
+    byDay.set(day, current);
+  });
+
+  return Array.from({ length: 30 }, (_, index) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (29 - index));
+    const day = formatDay(date);
+    return { day, label: date.toLocaleDateString(undefined, { month: "short", day: "numeric" }), ...(byDay.get(day) || { count: 0, redFlags: 0, rough: 0 }) };
   });
 }
 
@@ -389,6 +472,9 @@ function buildLocalSummary() {
     gut_score: { score, headline, summary, next_step: nextStep },
     patterns,
     action_plan: buildActionPlan(logs, patterns),
+    triggers: buildTriggerInsights(logs),
+    trends: buildTrendSnapshot(logs),
+    heatmap: buildHeatmap(logs),
     logs: logs.slice(0, 20),
     community: community.slice(0, 12),
   };
@@ -406,6 +492,71 @@ function buildLocalPatterns(recent) {
   if (avgBristol <= 2.4) return [{ tone: "warning", title: "Harder stools are trending", detail: "Types 1-2 often show up with constipation patterns. Water, fiber, movement, and routine timing are the usual first things to review." }];
   if (avgBristol >= 5.8) return [{ tone: "warning", title: "Looser stools are trending", detail: "Types 6-7 can happen with illness, stress, alcohol, caffeine, or food triggers. Hydration matters if this keeps happening." }];
   return [{ tone: "good", title: "Texture looks mostly in range", detail: "Your recent logs are clustering near Bristol types 3-5, which is usually the calmer middle of the stool chart." }];
+}
+
+function renderTriggerInsights(items = []) {
+  triggerListEl.innerHTML = "";
+  const shell = document.createElement("div");
+  shell.className = "insight-box";
+  const title = document.createElement("h3");
+  title.textContent = "Trigger lab";
+  shell.appendChild(title);
+
+  if (!items.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "Add food clues for a few logs and Gutty will look for rough-day overlaps.";
+    shell.appendChild(empty);
+  } else {
+    items.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "trigger-row";
+      row.innerHTML = `<span>${escapeHtml(titleCase(item.name))}</span><strong>${Math.round(item.rate * 100)}%</strong><em>${item.rough}/${item.total} rough logs</em>`;
+      shell.appendChild(row);
+    });
+  }
+
+  triggerListEl.appendChild(shell);
+}
+
+function renderTrendSnapshot(trends = { bristol: [], topSymptoms: [] }) {
+  trendPanelEl.innerHTML = "";
+  const shell = document.createElement("div");
+  shell.className = "insight-box";
+  shell.innerHTML = "<h3>Trend board</h3>";
+
+  const bars = document.createElement("div");
+  bars.className = "bristol-bars";
+  trends.bristol.forEach((item) => {
+    const bar = document.createElement("div");
+    bar.className = "bristol-bar";
+    bar.innerHTML = `<span>Type ${item.type}</span><i style="--bar:${item.max ? item.count / item.max : 0}"></i><strong>${item.count}</strong>`;
+    bars.appendChild(bar);
+  });
+  shell.appendChild(bars);
+
+  const symptoms = document.createElement("p");
+  symptoms.innerHTML = trends.topSymptoms.length
+    ? `<span class="label">Top symptoms</span> ${trends.topSymptoms.map(([name, count]) => `${escapeHtml(titleCase(name))} (${count})`).join(", ")}`
+    : '<span class="label">Top symptoms</span> Add symptom clues to see repeats.';
+  shell.appendChild(symptoms);
+  trendPanelEl.appendChild(shell);
+}
+
+function renderHeatmap(days = []) {
+  heatmapPanelEl.innerHTML = "";
+  const shell = document.createElement("div");
+  shell.className = "insight-box";
+  shell.innerHTML = "<h3>30-day rhythm</h3>";
+  const grid = document.createElement("div");
+  grid.className = "heatmap-grid";
+  days.forEach((day) => {
+    const cell = document.createElement("span");
+    cell.className = `heat-cell level-${Math.min(3, day.count)}${day.redFlags ? " has-alert" : ""}${day.rough ? " has-rough" : ""}`;
+    cell.title = `${day.label}: ${day.count} log(s), ${day.redFlags} red flag(s)`;
+    grid.appendChild(cell);
+  });
+  shell.appendChild(grid);
+  heatmapPanelEl.appendChild(shell);
 }
 
 function renderActionPlan(items = []) {
@@ -435,6 +586,9 @@ function renderSummary(data) {
   avgBristolEl.textContent = String(data.totals.avg_bristol);
   avgComfortEl.textContent = String(data.totals.avg_comfort);
   renderPatterns(data.patterns);
+  renderTriggerInsights(data.triggers);
+  renderTrendSnapshot(data.trends);
+  renderHeatmap(data.heatmap);
   renderActionPlan(data.action_plan);
   renderRecent(data.logs);
   renderCommunity(data.community);
@@ -517,6 +671,25 @@ signupFormEl.addEventListener("submit", async (event) => {
   await fetchSummary();
 });
 
+quickPresetButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    const preset = button.dataset.preset;
+    const values = {
+      smooth: { bristol_type: "4", urgency: "2", comfort: "5", hydration: "4", fiber: "4", stress: "2" },
+      hard: { bristol_type: "2", urgency: "2", comfort: "2", hydration: "2", fiber: "2", stress: "3" },
+      loose: { bristol_type: "6", urgency: "5", comfort: "2", hydration: "3", fiber: "2", stress: "4" },
+    }[preset];
+
+    if (!values) return;
+    Object.entries(values).forEach(([key, value]) => {
+      logFormEl.elements[key].value = value;
+    });
+    quickPresetButtons.forEach((item) => item.classList.remove("is-selected"));
+    button.classList.add("is-selected");
+    statusEl.textContent = "Preset loaded. Add food clues or notes, then analyze.";
+  });
+});
+
 logFormEl.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = Object.fromEntries(new FormData(logFormEl).entries());
@@ -529,6 +702,8 @@ logFormEl.addEventListener("submit", async (event) => {
   payload.fiber = Number(payload.fiber);
   payload.stress = Number(payload.stress);
   payload.flags = collectFlags(logFormEl);
+  payload.foods = tokenizeList(payload.foods);
+  payload.symptoms = tokenizeList(payload.symptoms);
   await apiRequest("/api/logs", payload);
   const logs = readStorage(LOG_STORAGE_KEY, []);
   logs.unshift({ id: crypto.randomUUID(), source: "browser", ...payload });
@@ -608,8 +783,11 @@ function buildExportPayload() {
 
 function exportLogsAsCsv() {
   const logs = readStorage(LOG_STORAGE_KEY, []);
-  const headers = ["logged_at", "bristol_type", "bristol_label", "color", "amount", "urgency", "comfort", "hydration", "fiber", "stress", "flags", "notes"];
-  const rows = logs.map((log) => headers.map((key) => csvEscape(key === "flags" ? (log.flags || []).join("; ") : log[key])).join(","));
+  const headers = ["logged_at", "bristol_type", "bristol_label", "color", "amount", "urgency", "comfort", "hydration", "fiber", "stress", "foods", "symptoms", "flags", "notes"];
+  const rows = logs.map((log) => headers.map((key) => {
+    if (["flags", "foods", "symptoms"].includes(key)) return csvEscape((log[key] || []).join("; "));
+    return csvEscape(log[key]);
+  }).join(","));
   downloadFile("gutty-logs.csv", [headers.join(","), ...rows].join("\n"), "text/csv");
   dataControlStatusEl.textContent = logs.length ? "CSV export downloaded." : "CSV downloaded with no logs yet.";
 }
@@ -644,9 +822,37 @@ async function copyClinicianSummary() {
   }
 }
 
+function downloadDoctorReport() {
+  const summary = buildLocalSummary();
+  const lines = [
+    "Gutty doctor-ready report",
+    `Generated: ${new Date().toLocaleString()}`,
+    "",
+    "Snapshot",
+    `- Total logs: ${summary.totals.log_count}`,
+    `- Logs this week: ${summary.totals.week_count}`,
+    `- Streak: ${summary.totals.streak} day(s)` ,
+    `- Red flags marked: ${summary.totals.red_flag_count}`,
+    `- Average Bristol: ${summary.totals.avg_bristol}`,
+    `- Average comfort: ${summary.totals.avg_comfort}`,
+    "",
+    "Possible trigger overlaps",
+    ...(summary.triggers.length ? summary.triggers.map((item) => `- ${titleCase(item.name)}: ${item.rough}/${item.total} rough logs`) : ["- Not enough food clue data yet"]),
+    "",
+    "Next best moves",
+    ...summary.action_plan.map((item) => `- ${item}`),
+    "",
+    "Medical boundary",
+    "Gutty is a tracker, not a diagnosis. Red stool, black tarry stool, severe pain, fever, dehydration, or persistent symptoms should be reviewed with a clinician.",
+  ];
+  downloadFile("gutty-doctor-report.txt", lines.join("\n"), "text/plain");
+  dataControlStatusEl.textContent = "Doctor-ready report downloaded.";
+}
+
 exportCsvButtonEl?.addEventListener("click", exportLogsAsCsv);
 exportJsonButtonEl?.addEventListener("click", exportLogsAsJson);
 copySummaryButtonEl?.addEventListener("click", copyClinicianSummary);
+doctorReportButtonEl?.addEventListener("click", downloadDoctorReport);
 
 resetButtonEl.addEventListener("click", async () => {
   if (!window.confirm("Reset all local Gutty demo data?")) return;

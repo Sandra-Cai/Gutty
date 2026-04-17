@@ -225,12 +225,27 @@
                 </select>
               </label>
             </div>
+            <div class="quick-log" aria-label="Quick log presets">
+              <button type="button" data-preset="smooth">Smooth baseline</button>
+              <button type="button" data-preset="hard">Hard / slow</button>
+              <button type="button" data-preset="loose">Loose / urgent</button>
+            </div>
             <div class="slider-grid">
               <label>Urgency <input name="urgency" type="range" min="1" max="5" value="3" /></label>
               <label>Comfort <input name="comfort" type="range" min="1" max="5" value="4" /></label>
               <label>Hydration <input name="hydration" type="range" min="1" max="5" value="3" /></label>
               <label>Fiber <input name="fiber" type="range" min="1" max="5" value="3" /></label>
               <label>Stress <input name="stress" type="range" min="1" max="5" value="3" /></label>
+            </div>
+            <div class="form-row">
+              <label>
+                Food and drink clues
+                <input name="foods" type="text" placeholder="coffee, spicy food, dairy, travel" />
+              </label>
+              <label>
+                Symptoms
+                <input name="symptoms" type="text" placeholder="bloating, cramps, gas, nausea" />
+              </label>
             </div>
             <fieldset>
               <legend>Red flags</legend>
@@ -255,6 +270,9 @@
             <h2>What Gutty noticed</h2>
           </div>
           <div id="patternList" class="pattern-list"></div>
+          <div id="triggerList" class="trigger-list" aria-label="Possible trigger patterns"></div>
+          <div id="trendPanel" class="trend-panel" aria-label="Trend snapshot"></div>
+          <div id="heatmapPanel" class="heatmap-panel" aria-label="Recent logging heatmap"></div>
           <div id="actionPlan" class="action-plan" aria-label="Suggested next steps"></div>
           <div class="care-note">
             Gutty can notice patterns. Gutty cannot diagnose you. Blood, tarry black stool, severe pain,
@@ -314,6 +332,7 @@
             <button id="exportCsvButton" type="button" class="secondary">Export CSV</button>
             <button id="exportJsonButton" type="button" class="secondary">Export JSON</button>
             <button id="copySummaryButton" type="button" class="secondary">Copy summary</button>
+            <button id="doctorReportButton" type="button" class="secondary">Doctor report</button>
             <button id="resetButton" type="button" class="danger">Clear local data</button>
           </div>
           <p id="dataControlStatus" class="status-pill">Your poop logs are stored in this browser.</p>
