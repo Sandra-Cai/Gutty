@@ -19,7 +19,7 @@
           <a href="#donate">Donate</a>
           <a href="#safety">Safety</a>
         </div>
-        <a class="nav-action" href="#signup">Sign up</a>
+        <a id="navAction" class="nav-action" href="#signup">Sign up</a>
       </nav>
 
       <section class="hero">
@@ -32,7 +32,7 @@
           </p>
           <div class="hero-actions">
             <a class="hero-button" href="#signup">Start free</a>
-            <span>Private local MVP</span>
+            <span id="privacyMode">Private local MVP</span>
           </div>
         </div>
         <aside id="signup" class="signup-panel" aria-label="Sign up for Gutty">
@@ -130,6 +130,11 @@
       <section id="appGate" class="locked-message" aria-live="polite">
         <h2>Sign up above to unlock Gutty.</h2>
         <p>The analyzer, community, donation pledge form, and private poop ledger appear after Google sign-in.</p>
+        <div class="gate-list" aria-label="What unlocks after signup">
+          <span>Private local logs</span>
+          <span>Gut score</span>
+          <span>Export tools</span>
+        </div>
       </section>
 
       <div id="appContent" class="app-content is-locked" aria-hidden="true" hidden>
@@ -156,6 +161,14 @@
           <div class="metric-block">
             <span class="label">This week</span>
             <strong id="weekCount">0</strong>
+          </div>
+          <div class="metric-block">
+            <span class="label">Streak</span>
+            <strong id="streakCount">0</strong>
+          </div>
+          <div class="metric-block">
+            <span class="label">Red flags</span>
+            <strong id="redFlagCount">0</strong>
           </div>
           <div class="metric-block">
             <span class="label">Avg Bristol</span>
@@ -242,6 +255,7 @@
             <h2>What Gutty noticed</h2>
           </div>
           <div id="patternList" class="pattern-list"></div>
+          <div id="actionPlan" class="action-plan" aria-label="Suggested next steps"></div>
           <div class="care-note">
             Gutty can notice patterns. Gutty cannot diagnose you. Blood, tarry black stool, severe pain,
             fever, dehydration, or symptoms that persist deserve a real clinician.
@@ -290,13 +304,38 @@
           <div id="communityList" class="community-list"></div>
         </article>
         <article class="tool-panel launch-card">
-          <p class="kicker">Launch line</p>
-          <h2>Everyone is saying you should trust your gut.</h2>
+          <p class="kicker">Data controls</p>
+          <h2>Your private poop ledger is yours.</h2>
           <p>
-            But how do you know your gut is even trustworthy? Introducing Gutty: a free gut health analyzer
-            for everyone to develop a healthier gut by logging the poop situation.
+            Export your local logs before experimenting, copy a short clinician-friendly summary, or clear
+            this browser when you want a fresh notebook.
           </p>
-          <button id="resetButton" class="danger">Reset local demo data</button>
+          <div class="control-grid" aria-label="Local data controls">
+            <button id="exportCsvButton" type="button" class="secondary">Export CSV</button>
+            <button id="exportJsonButton" type="button" class="secondary">Export JSON</button>
+            <button id="copySummaryButton" type="button" class="secondary">Copy summary</button>
+            <button id="resetButton" type="button" class="danger">Clear local data</button>
+          </div>
+          <p id="dataControlStatus" class="status-pill">Your poop logs are stored in this browser.</p>
+        </article>
+      </section>
+
+      <section class="privacy-section" aria-label="Privacy promise">
+        <article>
+          <p class="kicker">Privacy posture</p>
+          <h2>Gutty asks for an account, not your medical chart.</h2>
+          <p>
+            Google sign-in tells Gutty who is using the app. The sensitive poop ledger stays local in this
+            browser until account-level privacy, deletion, and export controls are ready for cloud sync.
+          </p>
+        </article>
+        <article>
+          <p class="kicker">Safety boundary</p>
+          <h2>Patterns are not diagnoses.</h2>
+          <p>
+            Gutty is a tracker and reflection tool. Red stool, black tarry stool, severe pain, fever,
+            dehydration, or symptoms that persist should go to a clinician instead of a comment thread.
+          </p>
         </article>
       </section>
 

@@ -4,6 +4,8 @@ const gutSummaryEl = document.getElementById("gutSummary");
 const nextStepEl = document.getElementById("nextStep");
 const logCountEl = document.getElementById("logCount");
 const weekCountEl = document.getElementById("weekCount");
+const streakCountEl = document.getElementById("streakCount");
+const redFlagCountEl = document.getElementById("redFlagCount");
 const avgBristolEl = document.getElementById("avgBristol");
 const avgComfortEl = document.getElementById("avgComfort");
 const patternListEl = document.getElementById("patternList");
@@ -12,6 +14,7 @@ const communityListEl = document.getElementById("communityList");
 const statusEl = document.getElementById("status");
 const signupStatusEl = document.getElementById("signupStatus");
 const donationStatusEl = document.getElementById("donationStatus");
+const dataControlStatusEl = document.getElementById("dataControlStatus");
 const signupKickerEl = document.getElementById("signupKicker");
 const signupTitleEl = document.getElementById("signupTitle");
 const signupCopyEl = document.getElementById("signupCopy");
@@ -20,6 +23,12 @@ const signedInPanelEl = document.getElementById("signedInPanel");
 const signedInNameEl = document.getElementById("signedInName");
 const signedInEmailEl = document.getElementById("signedInEmail");
 const signOutButtonEl = document.getElementById("signOutButton");
+const navActionEl = document.getElementById("navAction");
+const privacyModeEl = document.getElementById("privacyMode");
+const actionPlanEl = document.getElementById("actionPlan");
+const exportCsvButtonEl = document.getElementById("exportCsvButton");
+const exportJsonButtonEl = document.getElementById("exportJsonButton");
+const copySummaryButtonEl = document.getElementById("copySummaryButton");
 const logFormEl = document.getElementById("logForm");
 const signupFormEl = document.getElementById("signupForm");
 const googleSignupButtonEl = document.getElementById("googleSignupButton");
@@ -73,6 +82,35 @@ function readStorage(key, fallback) {
 
 function writeStorage(key, value) {
   window.localStorage.setItem(key, JSON.stringify(value));
+}
+
+function downloadFile(filename, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function csvEscape(value) {
+  const text = String(value ?? "");
+  return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+function formatDay(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function daysAgoLabel(value) {
+  if (!value) return "No logs yet";
+  const days = Math.floor((Date.now() - new Date(value).getTime()) / 86400000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Yesterday";
+  return `${days} days ago`;
 }
 
 function collectFlags(form) {
@@ -186,6 +224,9 @@ function unlockApp(user) {
   signedInNameEl.textContent = user.name || "Gutty user";
   signedInEmailEl.textContent = user.email || "Google account connected";
   signupStatusEl.textContent = "Ready to log your gut signals.";
+  navActionEl.textContent = "Open app";
+  navActionEl.href = "#analyzer";
+  privacyModeEl.textContent = "Signed in - local poop ledger";
   signupFormEl.querySelector("button").textContent = "Signed up";
   donationFormEl.elements.name.value = user.name || "";
   donationFormEl.elements.email.value = user.email || "";
@@ -206,6 +247,9 @@ function lockApp() {
   signedInPanelEl.hidden = true;
   googleSignupButtonEl.disabled = false;
   signupStatusEl.textContent = "No payment. No shame. Just your Google account.";
+  navActionEl.textContent = "Sign up";
+  navActionEl.href = "#signup";
+  privacyModeEl.textContent = "Private local MVP";
 }
 
 function renderPatterns(patterns) {
@@ -264,6 +308,42 @@ function renderCommunity(posts) {
   });
 }
 
+function calculateStreak(logs) {
+  if (!logs.length) return 0;
+
+  const days = new Set(logs.map((log) => formatDay(new Date(log.logged_at))));
+  let cursor = new Date();
+  let streak = 0;
+
+  while (days.has(formatDay(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+}
+
+function buildActionPlan(logs, patterns) {
+  if (!logs.length) {
+    return ["Log three poop situations to create a useful baseline.", "Keep each note boring and specific: food, stress, hydration, and timing.", "Use red flags only for symptoms you would not want a stranger to casually explain away."];
+  }
+
+  const latest = logs[0];
+  if (latest.flags?.length) {
+    return ["Pause experiments and consider contacting a clinician.", "Write down when symptoms started, what changed, and whether pain, fever, or dehydration is present.", "Export your log before an appointment if it helps you explain the pattern."];
+  }
+
+  if (Number(latest.bristol_type) <= 2) {
+    return ["Try a hydration and fiber check for the next 24 hours.", "Add movement if your routine has been unusually still.", "Change one variable at a time so the pattern stays readable."];
+  }
+
+  if (Number(latest.bristol_type) >= 6) {
+    return ["Prioritize fluids while stools are loose.", "Look for recent changes: illness, stress, alcohol, caffeine, travel, or a new food.", "Avoid crowdsourcing if loose stool persists or comes with fever, severe pain, or dehydration."];
+  }
+
+  return [patterns[0]?.detail || "Your latest log is usable baseline data.", "Keep logging at the same level of detail for a few more days.", "If you experiment, make it small: one food, habit, or timing change at a time."];
+}
+
 function buildLocalSummary() {
   const logs = readStorage(LOG_STORAGE_KEY, []).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
   const community = readStorage(COMMUNITY_STORAGE_KEY, []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -271,6 +351,8 @@ function buildLocalSummary() {
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const avg = (items, key) => items.length ? items.reduce((sum, item) => sum + Number(item[key] || 0), 0) / items.length : 0;
   const latest = logs[0];
+  const redFlagCount = logs.reduce((sum, log) => sum + (log.flags?.length || 0), 0);
+  const streak = calculateStreak(logs);
   let score = 50;
   let headline = "Gutty is waiting for the first field report";
   let summary = "Everyone says trust your gut. First, let us find out whether your gut is behaving like a reliable narrator.";
@@ -286,20 +368,27 @@ function buildLocalSummary() {
       score -= Math.max(0, Number(log.stress) - 3);
     });
     score = Math.max(0, Math.min(100, score));
+    if (streak >= 3) score = Math.min(100, score + 4);
     headline = latest.flags?.length ? "Your gut is asking for backup" : [3, 4].includes(Number(latest.bristol_type)) ? "Your latest log is in the smooth zone" : Number(latest.bristol_type) <= 2 ? "Your latest log leaned hard" : Number(latest.bristol_type) >= 6 ? "Your latest log leaned loose" : "Your gut is giving usable data";
     summary = `Latest report: type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color} color, ${latest.amount} amount, urgency ${latest.urgency}/5.`;
     nextStep = latest.flags?.length ? "Red flags beat experiments. Consider contacting a medical professional, especially for blood, tarry black stool, severe pain, fever, or dehydration." : "Try one small controlled experiment for the next 24 hours: hydration, fiber, movement, or stress reduction. Change one variable at a time.";
   }
 
+  const patterns = buildLocalPatterns(recent);
+
   return {
     totals: {
       log_count: logs.length,
       week_count: logs.filter((log) => new Date(log.logged_at).getTime() >= weekAgo).length,
+      streak,
+      red_flag_count: redFlagCount,
       avg_bristol: avg(logs, "bristol_type").toFixed(1).replace(".0", ""),
       avg_comfort: avg(logs, "comfort").toFixed(1).replace(".0", ""),
+      last_log: daysAgoLabel(latest?.logged_at),
     },
     gut_score: { score, headline, summary, next_step: nextStep },
-    patterns: buildLocalPatterns(recent),
+    patterns,
+    action_plan: buildActionPlan(logs, patterns),
     logs: logs.slice(0, 20),
     community: community.slice(0, 12),
   };
@@ -319,6 +408,21 @@ function buildLocalPatterns(recent) {
   return [{ tone: "good", title: "Texture looks mostly in range", detail: "Your recent logs are clustering near Bristol types 3-5, which is usually the calmer middle of the stool chart." }];
 }
 
+function renderActionPlan(items = []) {
+  actionPlanEl.innerHTML = "";
+  if (!items.length) return;
+
+  const title = document.createElement("h3");
+  title.textContent = "Next best moves";
+  const list = document.createElement("ol");
+  items.forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = item;
+    list.appendChild(li);
+  });
+  actionPlanEl.append(title, list);
+}
+
 function renderSummary(data) {
   gutScoreEl.textContent = String(data.gut_score.score);
   gutHeadlineEl.textContent = data.gut_score.headline;
@@ -326,9 +430,12 @@ function renderSummary(data) {
   nextStepEl.textContent = data.gut_score.next_step;
   logCountEl.textContent = String(data.totals.log_count);
   weekCountEl.textContent = String(data.totals.week_count);
+  streakCountEl.textContent = String(data.totals.streak || 0);
+  redFlagCountEl.textContent = String(data.totals.red_flag_count || 0);
   avgBristolEl.textContent = String(data.totals.avg_bristol);
   avgComfortEl.textContent = String(data.totals.avg_comfort);
   renderPatterns(data.patterns);
+  renderActionPlan(data.action_plan);
   renderRecent(data.logs);
   renderCommunity(data.community);
 }
@@ -488,6 +595,59 @@ donationFormEl.addEventListener("submit", async (event) => {
   donationFormEl.elements.message.value = "";
 });
 
+function buildExportPayload() {
+  return {
+    exported_at: new Date().toISOString(),
+    user: savedSignup(),
+    summary: buildLocalSummary(),
+    logs: readStorage(LOG_STORAGE_KEY, []),
+    community: readStorage(COMMUNITY_STORAGE_KEY, []),
+    donation_pledges: readStorage(DONATION_STORAGE_KEY, []),
+  };
+}
+
+function exportLogsAsCsv() {
+  const logs = readStorage(LOG_STORAGE_KEY, []);
+  const headers = ["logged_at", "bristol_type", "bristol_label", "color", "amount", "urgency", "comfort", "hydration", "fiber", "stress", "flags", "notes"];
+  const rows = logs.map((log) => headers.map((key) => csvEscape(key === "flags" ? (log.flags || []).join("; ") : log[key])).join(","));
+  downloadFile("gutty-logs.csv", [headers.join(","), ...rows].join("\n"), "text/csv");
+  dataControlStatusEl.textContent = logs.length ? "CSV export downloaded." : "CSV downloaded with no logs yet.";
+}
+
+function exportLogsAsJson() {
+  downloadFile("gutty-export.json", JSON.stringify(buildExportPayload(), null, 2), "application/json");
+  dataControlStatusEl.textContent = "JSON export downloaded.";
+}
+
+async function copyClinicianSummary() {
+  const summary = buildLocalSummary();
+  const logs = readStorage(LOG_STORAGE_KEY, []);
+  const latest = logs[0];
+  const text = [
+    "Gutty summary",
+    `Total logs: ${summary.totals.log_count}`,
+    `Logs this week: ${summary.totals.week_count}`,
+    `Current streak: ${summary.totals.streak} day(s)`,
+    `Red flags marked: ${summary.totals.red_flag_count}`,
+    `Average Bristol: ${summary.totals.avg_bristol}`,
+    `Average comfort: ${summary.totals.avg_comfort}`,
+    latest ? `Latest: type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color}, ${latest.amount}, urgency ${latest.urgency}/5, comfort ${latest.comfort}/5.` : "Latest: no logs yet.",
+    `Current note: ${summary.gut_score.next_step}`,
+  ].join("\n");
+
+  try {
+    await navigator.clipboard.writeText(text);
+    dataControlStatusEl.textContent = "Summary copied.";
+  } catch {
+    downloadFile("gutty-summary.txt", text, "text/plain");
+    dataControlStatusEl.textContent = "Clipboard blocked, so a text summary downloaded.";
+  }
+}
+
+exportCsvButtonEl?.addEventListener("click", exportLogsAsCsv);
+exportJsonButtonEl?.addEventListener("click", exportLogsAsJson);
+copySummaryButtonEl?.addEventListener("click", copyClinicianSummary);
+
 resetButtonEl.addEventListener("click", async () => {
   if (!window.confirm("Reset all local Gutty demo data?")) return;
   await apiRequest("/api/reset", {});
@@ -495,6 +655,7 @@ resetButtonEl.addEventListener("click", async () => {
   writeStorage(COMMUNITY_STORAGE_KEY, []);
   writeStorage(DONATION_STORAGE_KEY, []);
   statusEl.textContent = "Gutty data reset. Your gut gets a fresh notebook.";
+  dataControlStatusEl.textContent = "Local logs, community notes, and pledge drafts cleared.";
   await fetchSummary();
 });
 
