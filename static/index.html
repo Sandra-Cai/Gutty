@@ -328,6 +328,24 @@
             Export your local logs before experimenting, copy a short clinician-friendly summary, or clear
             this browser when you want a fresh notebook.
           </p>
+          <div id="localVault" class="local-vault" aria-label="Local health vault status">
+            <div>
+              <span class="label">Browser logs</span>
+              <strong id="vaultLogCount">0</strong>
+            </div>
+            <div>
+              <span class="label">Frequency-only</span>
+              <strong id="vaultImportedCount">0</strong>
+            </div>
+            <div>
+              <span class="label">Last import</span>
+              <strong id="vaultLastImport">Never</strong>
+            </div>
+          </div>
+          <label id="importDropZone" class="import-drop-zone" for="importJsonInput">
+            <span>Drop a Gutty JSON file here or choose one from this Mac.</span>
+            <strong>Private file stays in this browser.</strong>
+          </label>
           <div class="control-grid" aria-label="Local data controls">
             <button id="importJsonButton" type="button" class="secondary">Import JSON</button>
             <button id="exportCsvButton" type="button" class="secondary">Export CSV</button>

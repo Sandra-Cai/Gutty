@@ -723,6 +723,55 @@ button:hover,
   font-size: 1.03rem;
 }
 
+.local-vault {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0 12px;
+}
+
+.local-vault div {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #0a0d10;
+}
+
+.local-vault span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+}
+
+.local-vault strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 1.2rem;
+  overflow-wrap: anywhere;
+}
+
+.import-drop-zone {
+  display: grid;
+  gap: 5px;
+  margin: 14px 0;
+  padding: 16px;
+  border: 1px dashed rgba(157, 241, 132, 0.5);
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(157, 241, 132, 0.05);
+  cursor: pointer;
+}
+
+.import-drop-zone strong {
+  color: var(--green);
+}
+
+.import-drop-zone.is-dragging {
+  background: rgba(157, 241, 132, 0.13);
+  border-color: var(--green);
+}
+
 .control-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -972,6 +1021,10 @@ button:hover,
 }
 
 @media (max-width: 560px) {
+  .local-vault {
+    grid-template-columns: 1fr;
+  }
+
   h1 {
     font-size: 2.55rem;
   }

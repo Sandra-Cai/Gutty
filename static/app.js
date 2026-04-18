@@ -31,6 +31,10 @@ const privacyModeEl = document.getElementById("privacyMode");
 const actionPlanEl = document.getElementById("actionPlan");
 const importJsonButtonEl = document.getElementById("importJsonButton");
 const importJsonInputEl = document.getElementById("importJsonInput");
+const importDropZoneEl = document.getElementById("importDropZone");
+const vaultLogCountEl = document.getElementById("vaultLogCount");
+const vaultImportedCountEl = document.getElementById("vaultImportedCount");
+const vaultLastImportEl = document.getElementById("vaultLastImport");
 const exportCsvButtonEl = document.getElementById("exportCsvButton");
 const exportJsonButtonEl = document.getElementById("exportJsonButton");
 const copySummaryButtonEl = document.getElementById("copySummaryButton");
@@ -51,6 +55,7 @@ const SIGNUP_STORAGE_KEY = "gutty_signup";
 const LOG_STORAGE_KEY = "gutty_logs";
 const COMMUNITY_STORAGE_KEY = "gutty_community";
 const DONATION_STORAGE_KEY = "gutty_donations";
+const IMPORT_HISTORY_STORAGE_KEY = "gutty_import_history";
 const SUPABASE_URL = "https://sbvckjbdhzuxnarntrdu.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_qKvK4JA9GtDb9UdimqWkjw_Pm2Ox7nV";
 const supabaseClient = window.supabase?.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
@@ -150,6 +155,30 @@ function normalizedLogDate(log) {
 
 function savedSignup() {
   return readStorage(SIGNUP_STORAGE_KEY, null);
+}
+
+function localLogs() {
+  return readStorage(LOG_STORAGE_KEY, []);
+}
+
+function importHistory() {
+  return readStorage(IMPORT_HISTORY_STORAGE_KEY, []);
+}
+
+function isFrequencyOnlyLog(log) {
+  return !isDetailedLog(log);
+}
+
+function updateVaultStatus(message) {
+  const logs = localLogs();
+  const imports = importHistory();
+  const importedCount = logs.filter(isFrequencyOnlyLog).length;
+  if (vaultLogCountEl) vaultLogCountEl.textContent = String(logs.length);
+  if (vaultImportedCountEl) vaultImportedCountEl.textContent = String(importedCount);
+  if (vaultLastImportEl) {
+    vaultLastImportEl.textContent = imports[0]?.created_at ? new Date(imports[0].created_at).toLocaleString() : "Never";
+  }
+  if (message && dataControlStatusEl) dataControlStatusEl.textContent = message;
 }
 
 async function apiRequest(path, payload) {
@@ -443,7 +472,7 @@ function buildActionPlan(logs, patterns) {
 }
 
 function buildLocalSummary() {
-  const logs = readStorage(LOG_STORAGE_KEY, []).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+  const logs = localLogs().sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
   const detailedLogs = logs.filter(isDetailedLog);
   const community = readStorage(COMMUNITY_STORAGE_KEY, []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   const recent = detailedLogs.slice(0, 7);
@@ -503,7 +532,7 @@ function buildLocalSummary() {
 }
 
 function buildLocalPatterns(recent) {
-  const allLogs = readStorage(LOG_STORAGE_KEY, []);
+  const allLogs = localLogs();
   if (!recent.length && allLogs.length) {
     return [{ tone: "info", title: "Historical rhythm imported", detail: "Gutty can analyze frequency and gaps from your imported PDF, but Bristol type, color, pain, and trigger analysis need richer future logs." }];
   }
@@ -731,7 +760,7 @@ logFormEl.addEventListener("submit", async (event) => {
   payload.foods = tokenizeList(payload.foods);
   payload.symptoms = tokenizeList(payload.symptoms);
   await apiRequest("/api/logs", payload);
-  const logs = readStorage(LOG_STORAGE_KEY, []);
+  const logs = localLogs();
   logs.unshift({ id: crypto.randomUUID(), source: "browser", ...payload });
   writeStorage(LOG_STORAGE_KEY, logs);
   logFormEl.reset();
@@ -801,14 +830,14 @@ function buildExportPayload() {
     exported_at: new Date().toISOString(),
     user: savedSignup(),
     summary: buildLocalSummary(),
-    logs: readStorage(LOG_STORAGE_KEY, []),
+    logs: localLogs(),
     community: readStorage(COMMUNITY_STORAGE_KEY, []),
     donation_pledges: readStorage(DONATION_STORAGE_KEY, []),
   };
 }
 
 function exportLogsAsCsv() {
-  const logs = readStorage(LOG_STORAGE_KEY, []);
+  const logs = localLogs();
   const headers = ["logged_at", "bristol_type", "bristol_label", "color", "amount", "urgency", "comfort", "hydration", "fiber", "stress", "foods", "symptoms", "flags", "notes"];
   const rows = logs.map((log) => headers.map((key) => {
     if (["flags", "foods", "symptoms"].includes(key)) return csvEscape((log[key] || []).join("; "));
@@ -825,7 +854,7 @@ function exportLogsAsJson() {
 
 async function copyClinicianSummary() {
   const summary = buildLocalSummary();
-  const logs = readStorage(LOG_STORAGE_KEY, []);
+  const logs = localLogs();
   const latest = logs[0];
   const text = [
     "Gutty summary",
@@ -899,33 +928,62 @@ function normalizeImportedLog(entry, index) {
   };
 }
 
-function importLogsFromJson(payload) {
+async function importLogsFromJson(payload, filename = "JSON file") {
   const incoming = Array.isArray(payload) ? payload : payload.logs || payload.entries || [];
   if (!incoming.length) throw new Error("No logs found in import file");
-  const existing = readStorage(LOG_STORAGE_KEY, []);
+  const existing = localLogs();
+  const beforeCount = existing.length;
   const byKey = new Map(existing.map((log) => [log.id || `${log.logged_at}-${log.source}`, log]));
   incoming.map(normalizeImportedLog).forEach((log) => {
     byKey.set(log.id || `${log.logged_at}-${log.source}`, log);
   });
   const merged = Array.from(byKey.values()).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
   writeStorage(LOG_STORAGE_KEY, merged);
-  dataControlStatusEl.textContent = `Imported ${incoming.length} log entries. Your browser now has ${merged.length} total logs.`;
-  return fetchSummary();
+  const added = Math.max(0, merged.length - beforeCount);
+  const history = importHistory();
+  history.unshift({
+    filename,
+    created_at: new Date().toISOString(),
+    incoming_count: incoming.length,
+    added_count: added,
+    total_count: merged.length,
+  });
+  writeStorage(IMPORT_HISTORY_STORAGE_KEY, history.slice(0, 12));
+  updateVaultStatus(`Imported ${incoming.length} entries from ${filename}. Added ${added} new logs. Browser total: ${merged.length}.`);
+  await fetchSummary();
 }
 
-importJsonButtonEl?.addEventListener("click", () => importJsonInputEl.click());
-importJsonInputEl?.addEventListener("change", async () => {
-  const file = importJsonInputEl.files?.[0];
+async function importJsonFile(file) {
   if (!file) return;
+  dataControlStatusEl.textContent = `Reading ${file.name}...`;
   try {
     const payload = JSON.parse(await file.text());
-    await importLogsFromJson(payload);
+    await importLogsFromJson(payload, file.name);
+    window.location.hash = "#analyzer";
   } catch (error) {
     dataControlStatusEl.textContent = "Import failed. Choose a Gutty JSON export or private import file.";
     console.warn("Import failed", error);
   } finally {
-    importJsonInputEl.value = "";
+    if (importJsonInputEl) importJsonInputEl.value = "";
   }
+}
+
+importJsonButtonEl?.addEventListener("click", () => importJsonInputEl.click());
+importJsonInputEl?.addEventListener("change", () => importJsonFile(importJsonInputEl.files?.[0]));
+
+importDropZoneEl?.addEventListener("dragover", (event) => {
+  event.preventDefault();
+  importDropZoneEl.classList.add("is-dragging");
+});
+
+importDropZoneEl?.addEventListener("dragleave", () => {
+  importDropZoneEl.classList.remove("is-dragging");
+});
+
+importDropZoneEl?.addEventListener("drop", (event) => {
+  event.preventDefault();
+  importDropZoneEl.classList.remove("is-dragging");
+  importJsonFile(event.dataTransfer?.files?.[0]);
 });
 
 exportCsvButtonEl?.addEventListener("click", exportLogsAsCsv);
@@ -940,7 +998,8 @@ resetButtonEl.addEventListener("click", async () => {
   writeStorage(COMMUNITY_STORAGE_KEY, []);
   writeStorage(DONATION_STORAGE_KEY, []);
   statusEl.textContent = "Gutty data reset. Your gut gets a fresh notebook.";
-  dataControlStatusEl.textContent = "Local logs, community notes, and pledge drafts cleared.";
+  writeStorage(IMPORT_HISTORY_STORAGE_KEY, []);
+  updateVaultStatus("Local logs, community notes, import history, and pledge drafts cleared.");
   await fetchSummary();
 });
 
@@ -949,8 +1008,8 @@ initializeSupabaseAuth();
 const user = savedSignup();
 if (user) {
   unlockApp(user);
-  fetchSummary();
+  fetchSummary().then(() => updateVaultStatus());
 } else {
   lockApp();
-  fetchSummary();
+  fetchSummary().then(() => updateVaultStatus());
 }
