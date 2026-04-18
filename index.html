@@ -329,11 +329,13 @@
             this browser when you want a fresh notebook.
           </p>
           <div class="control-grid" aria-label="Local data controls">
+            <button id="importJsonButton" type="button" class="secondary">Import JSON</button>
             <button id="exportCsvButton" type="button" class="secondary">Export CSV</button>
             <button id="exportJsonButton" type="button" class="secondary">Export JSON</button>
             <button id="copySummaryButton" type="button" class="secondary">Copy summary</button>
             <button id="doctorReportButton" type="button" class="secondary">Doctor report</button>
             <button id="resetButton" type="button" class="danger">Clear local data</button>
+            <input id="importJsonInput" type="file" accept="application/json,.json" hidden />
           </div>
           <p id="dataControlStatus" class="status-pill">Your poop logs are stored in this browser.</p>
         </article>

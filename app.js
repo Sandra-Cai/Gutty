@@ -29,6 +29,8 @@ const signOutButtonEl = document.getElementById("signOutButton");
 const navActionEl = document.getElementById("navAction");
 const privacyModeEl = document.getElementById("privacyMode");
 const actionPlanEl = document.getElementById("actionPlan");
+const importJsonButtonEl = document.getElementById("importJsonButton");
+const importJsonInputEl = document.getElementById("importJsonInput");
 const exportCsvButtonEl = document.getElementById("exportCsvButton");
 const exportJsonButtonEl = document.getElementById("exportJsonButton");
 const copySummaryButtonEl = document.getElementById("copySummaryButton");
@@ -135,6 +137,15 @@ function titleCase(value) {
     .split(" ")
     .map((part) => part ? part[0].toUpperCase() + part.slice(1) : part)
     .join(" ");
+}
+
+function isDetailedLog(log) {
+  return Number.isFinite(Number(log.bristol_type)) && Number(log.bristol_type) >= 1;
+}
+
+function normalizedLogDate(log) {
+  const value = log.logged_at || log.date || new Date().toISOString();
+  return new Date(value).toISOString();
 }
 
 function savedSignup() {
@@ -291,12 +302,13 @@ function renderRecent(logs) {
 
   logs.forEach((log) => {
     const flags = log.flags?.length ? `<span class="flag-chip">Red flags: ${escapeHtml(log.flags.join(", "))}</span>` : "";
+    const detailed = isDetailedLog(log);
     const item = document.createElement("article");
     item.className = "recent-item";
     item.innerHTML = `
       <div>
-        <h3>Type ${escapeHtml(log.bristol_type)}: ${escapeHtml(log.bristol_label)}</h3>
-        <p>${escapeHtml(log.color)} · ${escapeHtml(log.amount)} · urgency ${escapeHtml(log.urgency)}/5 · comfort ${escapeHtml(log.comfort)}/5</p>
+        <h3>${detailed ? `Type ${escapeHtml(log.bristol_type)}: ${escapeHtml(log.bristol_label)}` : "Bowel movement logged"}</h3>
+        <p>${detailed ? `${escapeHtml(log.color)} · ${escapeHtml(log.amount)} · urgency ${escapeHtml(log.urgency)}/5 · comfort ${escapeHtml(log.comfort)}/5` : "Historical frequency-only entry imported from your private PDF."}</p>
         ${log.foods?.length ? `<p><span class="label">Foods</span> ${escapeHtml(log.foods.join(", "))}</p>` : ""}
         ${log.symptoms?.length ? `<p><span class="label">Symptoms</span> ${escapeHtml(log.symptoms.join(", "))}</p>` : ""}
         ${log.notes ? `<p>${escapeHtml(log.notes)}</p>` : ""}
@@ -340,7 +352,7 @@ function countBy(items) {
 function buildTriggerInsights(logs) {
   const rows = [];
   const foods = new Map();
-  logs.forEach((log) => {
+  logs.filter(isDetailedLog).forEach((log) => {
     const rough = Number(log.comfort) <= 2 || [1, 2, 6, 7].includes(Number(log.bristol_type)) || (log.flags || []).length > 0;
     (log.foods || []).forEach((food) => {
       if (!foods.has(food)) foods.set(food, { name: food, total: 0, rough: 0 });
@@ -360,9 +372,9 @@ function buildTriggerInsights(logs) {
 }
 
 function buildTrendSnapshot(logs) {
-  const recent = logs.slice(0, 14);
+  const recent = logs.filter(isDetailedLog).slice(0, 14);
   const bristolCounts = countBy(recent.map((log) => String(log.bristol_type)));
-  const symptomCounts = countBy(recent.flatMap((log) => log.symptoms || []));
+  const symptomCounts = countBy(logs.slice(0, 30).flatMap((log) => log.symptoms || []));
   const topSymptoms = Object.entries(symptomCounts).sort((a, b) => b[1] - a[1]).slice(0, 4);
   const maxBristol = Math.max(1, ...Object.values(bristolCounts));
 
@@ -412,6 +424,9 @@ function buildActionPlan(logs, patterns) {
   }
 
   const latest = logs[0];
+  if (latest && !isDetailedLog(latest)) {
+    return ["Your PDF history is loaded for frequency and gap analysis.", "Start logging Bristol type, color, comfort, symptoms, and food clues from today forward.", "Use the doctor report if you want a clean summary of the historical rhythm."];
+  }
   if (latest.flags?.length) {
     return ["Pause experiments and consider contacting a clinician.", "Write down when symptoms started, what changed, and whether pain, fever, or dehydration is present.", "Export your log before an appointment if it helps you explain the pattern."];
   }
@@ -429,8 +444,9 @@ function buildActionPlan(logs, patterns) {
 
 function buildLocalSummary() {
   const logs = readStorage(LOG_STORAGE_KEY, []).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+  const detailedLogs = logs.filter(isDetailedLog);
   const community = readStorage(COMMUNITY_STORAGE_KEY, []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  const recent = logs.slice(0, 7);
+  const recent = detailedLogs.slice(0, 7);
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const avg = (items, key) => items.length ? items.reduce((sum, item) => sum + Number(item[key] || 0), 0) / items.length : 0;
   const latest = logs[0];
@@ -442,7 +458,7 @@ function buildLocalSummary() {
   let nextStep = "Log your next poop situation with Bristol type, color, comfort, hydration, fiber, stress, and any red flags.";
 
   if (latest) {
-    score = 82;
+    score = detailedLogs.length ? 82 : 72;
     recent.forEach((log) => {
       if ([1, 2, 6, 7].includes(Number(log.bristol_type))) score -= 5;
       if (["black", "red", "pale"].includes(log.color)) score -= 8;
@@ -452,9 +468,15 @@ function buildLocalSummary() {
     });
     score = Math.max(0, Math.min(100, score));
     if (streak >= 3) score = Math.min(100, score + 4);
-    headline = latest.flags?.length ? "Your gut is asking for backup" : [3, 4].includes(Number(latest.bristol_type)) ? "Your latest log is in the smooth zone" : Number(latest.bristol_type) <= 2 ? "Your latest log leaned hard" : Number(latest.bristol_type) >= 6 ? "Your latest log leaned loose" : "Your gut is giving usable data";
-    summary = `Latest report: type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color} color, ${latest.amount} amount, urgency ${latest.urgency}/5.`;
-    nextStep = latest.flags?.length ? "Red flags beat experiments. Consider contacting a medical professional, especially for blood, tarry black stool, severe pain, fever, or dehydration." : "Try one small controlled experiment for the next 24 hours: hydration, fiber, movement, or stress reduction. Change one variable at a time.";
+    if (isDetailedLog(latest)) {
+      headline = latest.flags?.length ? "Your gut is asking for backup" : [3, 4].includes(Number(latest.bristol_type)) ? "Your latest log is in the smooth zone" : Number(latest.bristol_type) <= 2 ? "Your latest log leaned hard" : Number(latest.bristol_type) >= 6 ? "Your latest log leaned loose" : "Your gut is giving usable data";
+      summary = `Latest report: type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color} color, ${latest.amount} amount, urgency ${latest.urgency}/5.`;
+      nextStep = latest.flags?.length ? "Red flags beat experiments. Consider contacting a medical professional, especially for blood, tarry black stool, severe pain, fever, or dehydration." : "Try one small controlled experiment for the next 24 hours: hydration, fiber, movement, or stress reduction. Change one variable at a time.";
+    } else {
+      headline = "Your historical rhythm is loaded";
+      summary = `Latest imported entry: ${new Date(latest.logged_at).toLocaleDateString()}. These older records track frequency only.`;
+      nextStep = "Use the imported history for rhythm and gap analysis, then log Bristol type, comfort, color, and symptoms going forward.";
+    }
   }
 
   const patterns = buildLocalPatterns(recent);
@@ -465,8 +487,8 @@ function buildLocalSummary() {
       week_count: logs.filter((log) => new Date(log.logged_at).getTime() >= weekAgo).length,
       streak,
       red_flag_count: redFlagCount,
-      avg_bristol: avg(logs, "bristol_type").toFixed(1).replace(".0", ""),
-      avg_comfort: avg(logs, "comfort").toFixed(1).replace(".0", ""),
+      avg_bristol: detailedLogs.length ? avg(detailedLogs, "bristol_type").toFixed(1).replace(".0", "") : "n/a",
+      avg_comfort: detailedLogs.length ? avg(detailedLogs, "comfort").toFixed(1).replace(".0", "") : "n/a",
       last_log: daysAgoLabel(latest?.logged_at),
     },
     gut_score: { score, headline, summary, next_step: nextStep },
@@ -481,6 +503,10 @@ function buildLocalSummary() {
 }
 
 function buildLocalPatterns(recent) {
+  const allLogs = readStorage(LOG_STORAGE_KEY, []);
+  if (!recent.length && allLogs.length) {
+    return [{ tone: "info", title: "Historical rhythm imported", detail: "Gutty can analyze frequency and gaps from your imported PDF, but Bristol type, color, pain, and trigger analysis need richer future logs." }];
+  }
   if (!recent.length) {
     return [{ tone: "info", title: "Your gut needs a baseline", detail: "Log three situations and Gutty can start comparing texture, color, urgency, comfort, hydration, fiber, and stress." }];
   }
@@ -848,6 +874,59 @@ function downloadDoctorReport() {
   downloadFile("gutty-doctor-report.txt", lines.join("\n"), "text/plain");
   dataControlStatusEl.textContent = "Doctor-ready report downloaded.";
 }
+
+function normalizeImportedLog(entry, index) {
+  const loggedAt = normalizedLogDate(entry);
+  const detailed = isDetailedLog(entry);
+  return {
+    id: entry.id || `import-${loggedAt.slice(0, 10)}-${index}`,
+    source: entry.source || "import",
+    imported_at: new Date().toISOString(),
+    logged_at: loggedAt,
+    bristol_type: detailed ? Number(entry.bristol_type) : null,
+    bristol_label: detailed ? (entry.bristol_label || bristolLabels[Number(entry.bristol_type)]) : "Bowel movement logged - details not recorded",
+    color: detailed ? (entry.color || "brown") : "not recorded",
+    amount: detailed ? (entry.amount || "medium") : "not recorded",
+    urgency: detailed ? Number(entry.urgency || 3) : null,
+    comfort: detailed ? Number(entry.comfort || 3) : null,
+    hydration: detailed ? Number(entry.hydration || 3) : null,
+    fiber: detailed ? Number(entry.fiber || 3) : null,
+    stress: detailed ? Number(entry.stress || 3) : null,
+    foods: Array.isArray(entry.foods) ? entry.foods : tokenizeList(entry.foods),
+    symptoms: Array.isArray(entry.symptoms) ? entry.symptoms : tokenizeList(entry.symptoms),
+    flags: Array.isArray(entry.flags) ? entry.flags : [],
+    notes: entry.notes || entry.note || "Imported historical frequency-only record.",
+  };
+}
+
+function importLogsFromJson(payload) {
+  const incoming = Array.isArray(payload) ? payload : payload.logs || payload.entries || [];
+  if (!incoming.length) throw new Error("No logs found in import file");
+  const existing = readStorage(LOG_STORAGE_KEY, []);
+  const byKey = new Map(existing.map((log) => [log.id || `${log.logged_at}-${log.source}`, log]));
+  incoming.map(normalizeImportedLog).forEach((log) => {
+    byKey.set(log.id || `${log.logged_at}-${log.source}`, log);
+  });
+  const merged = Array.from(byKey.values()).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
+  writeStorage(LOG_STORAGE_KEY, merged);
+  dataControlStatusEl.textContent = `Imported ${incoming.length} log entries. Your browser now has ${merged.length} total logs.`;
+  return fetchSummary();
+}
+
+importJsonButtonEl?.addEventListener("click", () => importJsonInputEl.click());
+importJsonInputEl?.addEventListener("change", async () => {
+  const file = importJsonInputEl.files?.[0];
+  if (!file) return;
+  try {
+    const payload = JSON.parse(await file.text());
+    await importLogsFromJson(payload);
+  } catch (error) {
+    dataControlStatusEl.textContent = "Import failed. Choose a Gutty JSON export or private import file.";
+    console.warn("Import failed", error);
+  } finally {
+    importJsonInputEl.value = "";
+  }
+});
 
 exportCsvButtonEl?.addEventListener("click", exportLogsAsCsv);
 exportJsonButtonEl?.addEventListener("click", exportLogsAsJson);
