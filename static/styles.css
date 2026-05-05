@@ -48,6 +48,25 @@ body.is-authenticated .app-shell {
   width: min(1320px, calc(100% - 32px));
 }
 
+html.has-gutty-session .hero,
+html.has-gutty-session .exchange-strip,
+html.has-gutty-session .market-preview,
+html.has-gutty-session #appGate,
+body.is-authenticated .hero,
+body.is-authenticated .exchange-strip,
+body.is-authenticated .market-preview,
+body.is-authenticated #appGate {
+  display: none !important;
+}
+
+html.has-gutty-session #appContent[hidden] {
+  display: block !important;
+}
+
+html.has-gutty-session .app-shell {
+  width: min(1320px, calc(100% - 32px));
+}
+
 .top-nav {
   position: sticky;
   top: 12px;

@@ -270,6 +270,7 @@ async function initializeSupabaseAuth() {
 }
 
 function unlockApp(user) {
+  document.documentElement.classList.add("has-gutty-session");
   document.body.classList.add("is-authenticated");
   appContentEl.hidden = false;
   appContentEl.classList.remove("is-locked");
@@ -298,6 +299,7 @@ function unlockApp(user) {
 }
 
 function lockApp() {
+  document.documentElement.classList.remove("has-gutty-session");
   document.body.classList.remove("is-authenticated");
   appContentEl.hidden = true;
   appContentEl.classList.add("is-locked");
