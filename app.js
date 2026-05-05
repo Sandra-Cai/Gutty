@@ -295,8 +295,8 @@ function unlockApp(user) {
   signedInNameEl.textContent = user.name || "Gutty user";
   signedInEmailEl.textContent = user.email || "Google account connected";
   signupStatusEl.textContent = "Dashboard unlocked. Your private ledger stays local in this browser.";
-  navActionEl.textContent = "Open dashboard";
-  navActionEl.href = isLoginRoute ? "/" : "#appContent";
+  navActionEl.textContent = isLoginRoute ? "Dashboard" : "Account";
+  navActionEl.href = isLoginRoute ? "/" : "/login";
   privacyModeEl.textContent = "Signed in - private dashboard";
   signupFormEl.querySelector("button").textContent = "Signed up";
   donationFormEl.elements.name.value = user.name || "";
