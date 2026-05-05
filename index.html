@@ -16,7 +16,7 @@
         }
       } catch (error) {}
     </script>
-    <link rel="stylesheet" href="/styles.css?v=20260505-accountnav" />
+    <link rel="stylesheet" href="/styles.css?v=20260505-homeaccount" />
   </head>
   <body>
     <main class="app-shell">
@@ -31,7 +31,7 @@
           <a href="#donate">Donate</a>
           <a href="#safety">Safety</a>
         </div>
-        <a id="navAction" class="nav-action" href="/login">Sign in</a>
+        <a id="navAction" class="nav-action" href="#signup">Sign in</a>
       </nav>
 
       <section class="hero" data-public-only>
@@ -60,7 +60,7 @@
             </article>
           </div>
           <div class="hero-actions">
-            <a class="hero-button" href="/login">Start free</a>
+            <a class="hero-button" href="#signup">Start free</a>
             <span id="privacyMode">Private local MVP</span>
           </div>
         </div>
@@ -189,6 +189,12 @@
             <a href="#analyzer">Review</a>
             <a href="#community">Export</a>
           </div>
+          <aside id="accountPanel" class="dashboard-account" aria-label="Gutty account">
+            <span class="signed-in-label">Google account</span>
+            <strong id="dashboardAccountName">Signed in</strong>
+            <span id="dashboardAccountEmail"></span>
+            <button id="dashboardSignOutButton" type="button" class="text-button">Sign out</button>
+          </aside>
         </section>
       <section id="analyzer" class="grid top-grid" aria-label="Gutty overview">
         <article class="score-panel">
@@ -476,6 +482,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="/app.js?v=20260505-accountnav" defer></script>
+    <script src="/app.js?v=20260505-homeaccount" defer></script>
   </body>
 </html>

@@ -506,7 +506,7 @@ h3 {
 
 .dashboard-banner {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.5fr) minmax(260px, 0.55fr);
   gap: 18px;
   align-items: center;
   margin-bottom: 18px;
@@ -553,6 +553,30 @@ body.is-authenticated .dashboard-banner {
 .dashboard-steps a:hover {
   border-color: rgba(120, 242, 109, 0.5);
   background: rgba(120, 242, 109, 0.08);
+}
+
+.dashboard-account {
+  display: grid;
+  gap: 7px;
+  min-height: 128px;
+  padding: 16px;
+  border: 1px solid rgba(120, 242, 109, 0.24);
+  border-radius: 8px;
+  background: rgba(120, 242, 109, 0.06);
+}
+
+.dashboard-account strong,
+.dashboard-account span {
+  overflow-wrap: anywhere;
+}
+
+.dashboard-account strong {
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.dashboard-account .text-button {
+  color: var(--green);
 }
 
 .form-row,

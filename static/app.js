@@ -26,6 +26,9 @@ const signedInPanelEl = document.getElementById("signedInPanel");
 const signedInNameEl = document.getElementById("signedInName");
 const signedInEmailEl = document.getElementById("signedInEmail");
 const signOutButtonEl = document.getElementById("signOutButton");
+const dashboardAccountNameEl = document.getElementById("dashboardAccountName");
+const dashboardAccountEmailEl = document.getElementById("dashboardAccountEmail");
+const dashboardSignOutButtonEl = document.getElementById("dashboardSignOutButton");
 const navActionEl = document.getElementById("navAction");
 const privacyModeEl = document.getElementById("privacyMode");
 const actionPlanEl = document.getElementById("actionPlan");
@@ -294,9 +297,11 @@ function unlockApp(user) {
   signedInPanelEl.hidden = false;
   signedInNameEl.textContent = user.name || "Gutty user";
   signedInEmailEl.textContent = user.email || "Google account connected";
+  if (dashboardAccountNameEl) dashboardAccountNameEl.textContent = user.name || "Gutty user";
+  if (dashboardAccountEmailEl) dashboardAccountEmailEl.textContent = user.email || "Google account connected";
   signupStatusEl.textContent = "Dashboard unlocked. Your private ledger stays local in this browser.";
   navActionEl.textContent = isLoginRoute ? "Dashboard" : "Account";
-  navActionEl.href = isLoginRoute ? "/" : "/login";
+  navActionEl.href = isLoginRoute ? "/" : "#accountPanel";
   privacyModeEl.textContent = "Signed in - private dashboard";
   signupFormEl.querySelector("button").textContent = "Signed up";
   donationFormEl.elements.name.value = user.name || "";
@@ -326,7 +331,7 @@ function lockApp() {
   googleSignupButtonEl.disabled = false;
   signupStatusEl.textContent = "Free to use. Private by default. One Google sign-in.";
   navActionEl.textContent = isLoginRoute ? "Home" : "Sign in";
-  navActionEl.href = isLoginRoute ? "/" : "/login";
+  navActionEl.href = isLoginRoute ? "/" : "#signup";
   privacyModeEl.textContent = "Private local MVP";
 }
 
@@ -704,7 +709,7 @@ googleSignupButtonEl?.addEventListener("click", async () => {
   }
 });
 
-signOutButtonEl?.addEventListener("click", async () => {
+async function signOut() {
   if (supabaseClient) {
     await supabaseClient.auth.signOut();
   }
@@ -712,7 +717,10 @@ signOutButtonEl?.addEventListener("click", async () => {
   window.localStorage.removeItem(SIGNUP_STORAGE_KEY);
   lockApp();
   await fetchSummary();
-});
+}
+
+signOutButtonEl?.addEventListener("click", signOut);
+dashboardSignOutButtonEl?.addEventListener("click", signOut);
 
 signupFormEl.addEventListener("submit", async (event) => {
   event.preventDefault();
