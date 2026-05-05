@@ -30,6 +30,23 @@
             Everyone says trust your gut. But how do you know your gut is even trustworthy? Log the poop
             situation, watch the pattern, and act before your body starts sending all-caps messages.
           </p>
+          <div class="hero-trust-grid" aria-label="Gutty basics">
+            <article>
+              <span class="label">Private by default</span>
+              <strong>Local first</strong>
+              <p>Your personal logbook stays in this browser unless you export it.</p>
+            </article>
+            <article>
+              <span class="label">Fast setup</span>
+              <strong>Google sign-in</strong>
+              <p>Use one account to unlock the dashboard without a long intake flow.</p>
+            </article>
+            <article>
+              <span class="label">Useful output</span>
+              <strong>Export anytime</strong>
+              <p>Keep a clean summary ready for yourself, a doctor visit, or trend review.</p>
+            </article>
+          </div>
           <div class="hero-actions">
             <a class="hero-button" href="#signup">Start free</a>
             <span id="privacyMode">Private local MVP</span>
@@ -42,6 +59,11 @@
             Use your Google account to create your free Gutty account. Your poop logs stay on this device in
             this MVP.
           </p>
+          <div class="signup-notes" aria-label="What happens after signup">
+            <div>Private local logbook</div>
+            <div>Pattern analyzer</div>
+            <div>Import and export tools</div>
+          </div>
           <div id="googleAuthBlock" class="google-auth-block">
             <button id="googleSignupButton" type="button" class="google-button" aria-label="Continue with Google">
               <span class="google-mark">G</span>
@@ -128,16 +150,34 @@
       </section>
 
       <section id="appGate" class="locked-message" aria-live="polite">
-        <h2>Sign up above to unlock Gutty.</h2>
-        <p>The analyzer, community, donation pledge form, and private poop ledger appear after Google sign-in.</p>
-        <div class="gate-list" aria-label="What unlocks after signup">
-          <span>Private local logs</span>
-          <span>Gut score</span>
-          <span>Export tools</span>
+        <div class="gate-layout">
+          <div>
+            <p class="kicker">Members only</p>
+            <h2>Sign up above to unlock Gutty.</h2>
+            <p>The analyzer, community, donation pledge form, and private poop ledger appear after Google sign-in.</p>
+          </div>
+          <div class="gate-list" aria-label="What unlocks after signup">
+            <span>Private local logs</span>
+            <span>Gut score</span>
+            <span>Trend board</span>
+            <span>Export tools</span>
+          </div>
         </div>
       </section>
 
       <div id="appContent" class="app-content is-locked" aria-hidden="true" hidden>
+        <section class="dashboard-banner" aria-label="How to use Gutty">
+          <div>
+            <p class="kicker">Dashboard</p>
+            <h2>Start with one clean log, then let the pattern build.</h2>
+            <p>Log the situation, review what changed, and export only when the summary becomes useful.</p>
+          </div>
+          <div class="dashboard-steps" aria-label="Gutty flow">
+            <span>1 Log</span>
+            <span>2 Review</span>
+            <span>3 Export</span>
+          </div>
+        </section>
       <section id="analyzer" class="grid top-grid" aria-label="Gutty overview">
         <article class="score-panel">
           <p class="kicker">Gut check</p>
