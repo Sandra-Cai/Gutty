@@ -49,6 +49,7 @@ const resetButtonEl = document.getElementById("resetButton");
 const appContentEl = document.getElementById("appContent");
 const appGateEl = document.getElementById("appGate");
 const authOnlyEls = document.querySelectorAll("[data-auth-only]");
+const publicOnlyEls = document.querySelectorAll("[data-public-only]");
 const amountButtons = document.querySelectorAll("[data-amount]");
 
 const SIGNUP_STORAGE_KEY = "gutty_signup";
@@ -269,15 +270,19 @@ async function initializeSupabaseAuth() {
 }
 
 function unlockApp(user) {
+  document.body.classList.add("is-authenticated");
   appContentEl.hidden = false;
   appContentEl.classList.remove("is-locked");
   appContentEl.removeAttribute("aria-hidden");
   authOnlyEls.forEach((element) => {
     element.hidden = false;
   });
+  publicOnlyEls.forEach((element) => {
+    element.hidden = true;
+  });
   appGateEl.hidden = true;
   signupKickerEl.textContent = "Dashboard ready";
-  signupTitleEl.textContent = "Welcome back";
+  signupTitleEl.textContent = "Dashboard unlocked";
   signupCopyEl.textContent = "Your private Gutty dashboard is unlocked. Log one clean entry, then use the trend view when the pattern becomes interesting.";
   googleAuthBlockEl.hidden = true;
   signedInPanelEl.hidden = false;
@@ -285,19 +290,23 @@ function unlockApp(user) {
   signedInEmailEl.textContent = user.email || "Google account connected";
   signupStatusEl.textContent = "Dashboard unlocked. Your private ledger stays local in this browser.";
   navActionEl.textContent = "Open dashboard";
-  navActionEl.href = "#analyzer";
-  privacyModeEl.textContent = "Signed in - local poop ledger";
+  navActionEl.href = "#appContent";
+  privacyModeEl.textContent = "Signed in - private dashboard";
   signupFormEl.querySelector("button").textContent = "Signed up";
   donationFormEl.elements.name.value = user.name || "";
   donationFormEl.elements.email.value = user.email || "";
 }
 
 function lockApp() {
+  document.body.classList.remove("is-authenticated");
   appContentEl.hidden = true;
   appContentEl.classList.add("is-locked");
   appContentEl.setAttribute("aria-hidden", "true");
   authOnlyEls.forEach((element) => {
     element.hidden = true;
+  });
+  publicOnlyEls.forEach((element) => {
+    element.hidden = false;
   });
   appGateEl.hidden = false;
   signupKickerEl.textContent = "Start free";

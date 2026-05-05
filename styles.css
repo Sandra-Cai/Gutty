@@ -44,6 +44,10 @@ a {
   padding: 18px 0 72px;
 }
 
+body.is-authenticated .app-shell {
+  width: min(1320px, calc(100% - 32px));
+}
+
 .top-nav {
   position: sticky;
   top: 12px;
@@ -494,6 +498,10 @@ h3 {
   box-shadow: var(--shadow);
 }
 
+body.is-authenticated .dashboard-banner {
+  margin-top: 0;
+}
+
 .dashboard-banner h2 {
   margin-top: 10px;
   font-size: 2rem;
@@ -509,7 +517,7 @@ h3 {
   gap: 10px;
 }
 
-.dashboard-steps span {
+.dashboard-steps a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -521,6 +529,11 @@ h3 {
   color: var(--text);
   font-size: 0.95rem;
   font-weight: 900;
+}
+
+.dashboard-steps a:hover {
+  border-color: rgba(120, 242, 109, 0.5);
+  background: rgba(120, 242, 109, 0.08);
 }
 
 .form-row,

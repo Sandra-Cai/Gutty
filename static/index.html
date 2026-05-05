@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Gutty</title>
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=20260505-dashboard" />
   </head>
   <body>
     <main class="app-shell">
@@ -22,7 +22,7 @@
         <a id="navAction" class="nav-action" href="#signup">Sign up</a>
       </nav>
 
-      <section class="hero">
+      <section class="hero" data-public-only>
         <div class="hero-copy">
           <p class="eyebrow">Free gut health analyzer</p>
           <h1>Your gut has signals. Gutty turns them into a dashboard.</h1>
@@ -102,7 +102,7 @@
         </aside>
       </section>
 
-      <section class="exchange-strip" aria-label="Gutty highlights" data-auth-only hidden>
+      <section class="exchange-strip" aria-label="Gutty highlights" data-public-only>
         <article>
           <span class="label">Tracked signals</span>
           <strong>8</strong>
@@ -120,7 +120,7 @@
         </article>
       </section>
 
-      <section class="market-preview" aria-label="Gutty signal board" data-auth-only hidden>
+      <section class="market-preview" aria-label="Gutty signal board" data-public-only>
         <div class="signal-board">
           <div class="signal-row positive">
             <span>Type 4</span>
@@ -149,7 +149,7 @@
         />
       </section>
 
-      <section id="appGate" class="locked-message" aria-live="polite">
+      <section id="appGate" class="locked-message" aria-live="polite" data-public-only>
         <div class="gate-layout">
           <div>
             <p class="kicker">Members only</p>
@@ -168,14 +168,14 @@
       <div id="appContent" class="app-content is-locked" aria-hidden="true" hidden>
         <section class="dashboard-banner" aria-label="How to use Gutty">
           <div>
-            <p class="kicker">Dashboard</p>
-            <h2>Start with one clean log, then let the pattern build.</h2>
-            <p>Log the situation, review what changed, and export only when the summary becomes useful.</p>
+            <p class="kicker">Private dashboard</p>
+            <h2>Your Gutty workspace is ready.</h2>
+            <p>Log a field report, review the score and trends, then export a clean summary when the pattern matters.</p>
           </div>
           <div class="dashboard-steps" aria-label="Gutty flow">
-            <span>1 Log</span>
-            <span>2 Review</span>
-            <span>3 Export</span>
+            <a href="#logForm">Log</a>
+            <a href="#analyzer">Review</a>
+            <a href="#community">Export</a>
           </div>
         </section>
       <section id="analyzer" class="grid top-grid" aria-label="Gutty overview">
@@ -464,6 +464,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="/app.js" defer></script>
+    <script src="/app.js?v=20260505-dashboard" defer></script>
   </body>
 </html>
