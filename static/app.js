@@ -49,6 +49,7 @@ const googleSignupButtonEl = document.getElementById("googleSignupButton");
 const communityFormEl = document.getElementById("communityForm");
 const donationFormEl = document.getElementById("donationForm");
 const resetButtonEl = document.getElementById("resetButton");
+const eraseLogsButtonEl = document.getElementById("eraseLogsButton");
 const appContentEl = document.getElementById("appContent");
 const appGateEl = document.getElementById("appGate");
 const authOnlyEls = document.querySelectorAll("[data-auth-only]");
@@ -1016,6 +1017,20 @@ exportCsvButtonEl?.addEventListener("click", exportLogsAsCsv);
 exportJsonButtonEl?.addEventListener("click", exportLogsAsJson);
 copySummaryButtonEl?.addEventListener("click", copyClinicianSummary);
 doctorReportButtonEl?.addEventListener("click", downloadDoctorReport);
+
+
+eraseLogsButtonEl?.addEventListener("click", async () => {
+  const logs = localLogs();
+  const message = logs.length
+    ? `Erase ${logs.length} poop log${logs.length === 1 ? "" : "s"} from this browser? This keeps your account, community notes, and pledge drafts.`
+    : "No poop logs are stored in this browser. Clear import history anyway?";
+  if (!window.confirm(message)) return;
+  writeStorage(LOG_STORAGE_KEY, []);
+  writeStorage(IMPORT_HISTORY_STORAGE_KEY, []);
+  statusEl.textContent = "Poop logs erased from this browser.";
+  updateVaultStatus("Poop logs and import history erased. Account, community notes, and pledges were kept.");
+  await fetchSummary();
+});
 
 resetButtonEl.addEventListener("click", async () => {
   if (!window.confirm("Reset all local Gutty demo data?")) return;
