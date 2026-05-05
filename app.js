@@ -51,6 +51,7 @@ const appGateEl = document.getElementById("appGate");
 const authOnlyEls = document.querySelectorAll("[data-auth-only]");
 const publicOnlyEls = document.querySelectorAll("[data-public-only], .hero, .exchange-strip, .market-preview, #appGate");
 const amountButtons = document.querySelectorAll("[data-amount]");
+const isLoginRoute = window.location.pathname.replace(/\/$/, "") === "/login";
 
 const SIGNUP_STORAGE_KEY = "gutty_signup";
 const LOG_STORAGE_KEY = "gutty_logs";
@@ -270,16 +271,20 @@ async function initializeSupabaseAuth() {
 }
 
 function unlockApp(user) {
-  document.documentElement.classList.add("has-gutty-session");
+  document.documentElement.classList.toggle("has-gutty-session", !isLoginRoute);
   document.body.classList.add("is-authenticated");
-  appContentEl.hidden = false;
-  appContentEl.classList.remove("is-locked");
-  appContentEl.removeAttribute("aria-hidden");
+  appContentEl.hidden = isLoginRoute;
+  appContentEl.classList.toggle("is-locked", isLoginRoute);
+  if (isLoginRoute) {
+    appContentEl.setAttribute("aria-hidden", "true");
+  } else {
+    appContentEl.removeAttribute("aria-hidden");
+  }
   authOnlyEls.forEach((element) => {
     element.hidden = false;
   });
   publicOnlyEls.forEach((element) => {
-    element.hidden = true;
+    element.hidden = !isLoginRoute;
   });
   appGateEl.hidden = true;
   signupKickerEl.textContent = "Dashboard ready";
@@ -291,7 +296,7 @@ function unlockApp(user) {
   signedInEmailEl.textContent = user.email || "Google account connected";
   signupStatusEl.textContent = "Dashboard unlocked. Your private ledger stays local in this browser.";
   navActionEl.textContent = "Open dashboard";
-  navActionEl.href = "#appContent";
+  navActionEl.href = isLoginRoute ? "/" : "#appContent";
   privacyModeEl.textContent = "Signed in - private dashboard";
   signupFormEl.querySelector("button").textContent = "Signed up";
   donationFormEl.elements.name.value = user.name || "";
@@ -310,16 +315,18 @@ function lockApp() {
   publicOnlyEls.forEach((element) => {
     element.hidden = false;
   });
-  appGateEl.hidden = false;
-  signupKickerEl.textContent = "Start free";
-  signupTitleEl.textContent = "Sign up with Google";
-  signupCopyEl.textContent = "Use your Google account to create your free Gutty account. Your poop logs stay on this device in this MVP.";
+  appGateEl.hidden = isLoginRoute;
+  signupKickerEl.textContent = isLoginRoute ? "Sign in" : "Start free";
+  signupTitleEl.textContent = isLoginRoute ? "Sign in with Google" : "Sign up with Google";
+  signupCopyEl.textContent = isLoginRoute
+    ? "Use your Google account to open Gutty. Your private ledger stays local in this browser."
+    : "Use your Google account to create your free Gutty account. Your poop logs stay on this device in this MVP.";
   googleAuthBlockEl.hidden = false;
   signedInPanelEl.hidden = true;
   googleSignupButtonEl.disabled = false;
   signupStatusEl.textContent = "Free to use. Private by default. One Google sign-in.";
-  navActionEl.textContent = "Sign up";
-  navActionEl.href = "#signup";
+  navActionEl.textContent = isLoginRoute ? "Home" : "Sign in";
+  navActionEl.href = isLoginRoute ? "/" : "/login";
   privacyModeEl.textContent = "Private local MVP";
 }
 

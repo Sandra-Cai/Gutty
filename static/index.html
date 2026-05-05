@@ -6,16 +6,17 @@
     <title>Gutty</title>
     <script>
       try {
+        var isLoginPage = location.pathname.replace(/\/$/, "") === "/login";
         var hasGuttyUser = localStorage.getItem("gutty_signup");
         var hasSupabaseUser = Object.keys(localStorage).some(function (key) {
           return key.indexOf("supabase") !== -1 && key.indexOf("auth-token") !== -1 && localStorage.getItem(key);
         });
-        if (hasGuttyUser || hasSupabaseUser) {
+        if (!isLoginPage && (hasGuttyUser || hasSupabaseUser)) {
           document.documentElement.classList.add("has-gutty-session");
         }
       } catch (error) {}
     </script>
-    <link rel="stylesheet" href="/styles.css?v=20260505-dashboard3" />
+    <link rel="stylesheet" href="/styles.css?v=20260505-login" />
   </head>
   <body>
     <main class="app-shell">
@@ -30,7 +31,7 @@
           <a href="#donate">Donate</a>
           <a href="#safety">Safety</a>
         </div>
-        <a id="navAction" class="nav-action" href="#signup">Sign up</a>
+        <a id="navAction" class="nav-action" href="/login">Sign in</a>
       </nav>
 
       <section class="hero" data-public-only>
@@ -59,7 +60,7 @@
             </article>
           </div>
           <div class="hero-actions">
-            <a class="hero-button" href="#signup">Start free</a>
+            <a class="hero-button" href="/login">Start free</a>
             <span id="privacyMode">Private local MVP</span>
           </div>
         </div>
@@ -475,6 +476,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="/app.js?v=20260505-dashboard3" defer></script>
+    <script src="/app.js?v=20260505-login" defer></script>
   </body>
 </html>

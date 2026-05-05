@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Gutty</title>
+    <title>Sign in to Gutty</title>
     <script>
       try {
         var isLoginPage = location.pathname.replace(/\/$/, "") === "/login";
@@ -18,7 +18,7 @@
     </script>
     <link rel="stylesheet" href="/styles.css?v=20260505-login" />
   </head>
-  <body>
+  <body class="login-page">
     <main class="app-shell">
       <nav class="top-nav" aria-label="Gutty navigation">
         <div class="brand-row">
@@ -36,11 +36,10 @@
 
       <section class="hero" data-public-only>
         <div class="hero-copy">
-          <p class="eyebrow">Free gut health analyzer</p>
-          <h1>Your gut has signals. Gutty turns them into a dashboard.</h1>
+          <p class="eyebrow">Gutty login</p>
+          <h1>Sign in to Gutty.</h1>
           <p class="lede">
-            Everyone says trust your gut. But how do you know your gut is even trustworthy? Log the poop
-            situation, watch the pattern, and act before your body starts sending all-caps messages.
+            Use your Google account to open your private gut health dashboard. Your sensitive poop ledger stays local in this browser.
           </p>
           <div class="hero-trust-grid" aria-label="Gutty basics">
             <article>
@@ -60,7 +59,7 @@
             </article>
           </div>
           <div class="hero-actions">
-            <a class="hero-button" href="/login">Start free</a>
+            <a class="hero-button" href="#signup">Continue with Google</a>
             <span id="privacyMode">Private local MVP</span>
           </div>
         </div>
