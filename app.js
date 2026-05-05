@@ -931,6 +931,93 @@ function downloadDoctorReport() {
   dataControlStatusEl.textContent = "Doctor-ready report downloaded.";
 }
 
+function parseMarkdownList(value) {
+  return String(value || "")
+    .replace(/^\[[\s\S]*?\]$/, (match) => match.slice(1, -1))
+    .split(/[;,\n]/)
+    .map((item) => item.replace(/^[-*]\s*/, "").trim().toLowerCase())
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+function parseMarkdownPoopLog(markdown, filename = "Markdown file") {
+  const fields = {};
+  const bodyLines = [];
+  let activeKey = null;
+  const aliases = {
+    when: "logged_at",
+    date: "logged_at",
+    time: "logged_at",
+    logged_at: "logged_at",
+    bristol: "bristol_type",
+    bristol_type: "bristol_type",
+    type: "bristol_type",
+    color: "color",
+    amount: "amount",
+    urgency: "urgency",
+    comfort: "comfort",
+    hydration: "hydration",
+    fiber: "fiber",
+    fibre: "fiber",
+    stress: "stress",
+    foods: "foods",
+    food: "foods",
+    drinks: "foods",
+    symptoms: "symptoms",
+    flags: "flags",
+    red_flags: "flags",
+    notes: "notes",
+    note: "notes",
+  };
+
+  String(markdown || "").split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim();
+    if (!trimmed || /^---+$/.test(trimmed) || /^#+\s*/.test(trimmed)) return;
+    const match = trimmed.match(/^[-*]?\s*([A-Za-z _-]+)\s*:\s*(.*)$/);
+    if (match) {
+      const key = aliases[match[1].trim().toLowerCase().replace(/[ -]+/g, "_")];
+      if (key) {
+        activeKey = key;
+        fields[key] = fields[key] ? `${fields[key]}\n${match[2].trim()}` : match[2].trim();
+        return;
+      }
+    }
+    if (activeKey === "notes" && /^\s+/.test(line)) {
+      fields.notes = `${fields.notes || ""}\n${trimmed}`.trim();
+      return;
+    }
+    bodyLines.push(trimmed.replace(/^[-*]\s*/, ""));
+  });
+
+  const bristolMatch = String(fields.bristol_type || markdown).match(/(?:bristol|type)\D*([1-7])/i);
+  const bristolType = bristolMatch ? Number(bristolMatch[1]) : Number(fields.bristol_type);
+  const detailed = Number.isFinite(bristolType) && bristolType >= 1 && bristolType <= 7;
+  const loggedAt = fields.logged_at && !Number.isNaN(new Date(fields.logged_at).getTime())
+    ? new Date(fields.logged_at).toISOString()
+    : new Date().toISOString();
+  const notes = [fields.notes, bodyLines.join("\n")].filter(Boolean).join("\n\n").trim();
+
+  return {
+    id: `md-${filename.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${Date.now()}`,
+    source: "markdown",
+    imported_at: new Date().toISOString(),
+    logged_at: loggedAt,
+    bristol_type: detailed ? bristolType : null,
+    bristol_label: detailed ? bristolLabels[bristolType] : "Bowel movement logged - details not recorded",
+    color: detailed ? (fields.color || "brown").toLowerCase() : "not recorded",
+    amount: detailed ? (fields.amount || "medium").toLowerCase() : "not recorded",
+    urgency: detailed ? Number(fields.urgency || 3) : null,
+    comfort: detailed ? Number(fields.comfort || 3) : null,
+    hydration: detailed ? Number(fields.hydration || 3) : null,
+    fiber: detailed ? Number(fields.fiber || 3) : null,
+    stress: detailed ? Number(fields.stress || 3) : null,
+    foods: parseMarkdownList(fields.foods),
+    symptoms: parseMarkdownList(fields.symptoms),
+    flags: parseMarkdownList(fields.flags),
+    notes: notes || `Imported from ${filename}.`,
+  };
+}
+
 function normalizeImportedLog(entry, index) {
   const loggedAt = normalizedLogDate(entry);
   const detailed = isDetailedLog(entry);
@@ -980,15 +1067,19 @@ async function importLogsFromJson(payload, filename = "JSON file") {
   await fetchSummary();
 }
 
-async function importJsonFile(file) {
+async function importDataFile(file) {
   if (!file) return;
   dataControlStatusEl.textContent = `Reading ${file.name}...`;
   try {
-    const payload = JSON.parse(await file.text());
-    await importLogsFromJson(payload, file.name);
+    const text = await file.text();
+    if (/\.(md|markdown)$/i.test(file.name) || file.type === "text/markdown") {
+      await importLogsFromJson([parseMarkdownPoopLog(text, file.name)], file.name);
+    } else {
+      await importLogsFromJson(JSON.parse(text), file.name);
+    }
     window.location.hash = "#analyzer";
   } catch (error) {
-    dataControlStatusEl.textContent = "Import failed. Choose a Gutty JSON export or private import file.";
+    dataControlStatusEl.textContent = "Import failed. Choose a Gutty JSON export or Markdown poop note.";
     console.warn("Import failed", error);
   } finally {
     if (importJsonInputEl) importJsonInputEl.value = "";
@@ -996,7 +1087,7 @@ async function importJsonFile(file) {
 }
 
 importJsonButtonEl?.addEventListener("click", () => importJsonInputEl.click());
-importJsonInputEl?.addEventListener("change", () => importJsonFile(importJsonInputEl.files?.[0]));
+importJsonInputEl?.addEventListener("change", () => importDataFile(importJsonInputEl.files?.[0]));
 
 importDropZoneEl?.addEventListener("dragover", (event) => {
   event.preventDefault();
@@ -1010,7 +1101,7 @@ importDropZoneEl?.addEventListener("dragleave", () => {
 importDropZoneEl?.addEventListener("drop", (event) => {
   event.preventDefault();
   importDropZoneEl.classList.remove("is-dragging");
-  importJsonFile(event.dataTransfer?.files?.[0]);
+  importDataFile(event.dataTransfer?.files?.[0]);
 });
 
 exportCsvButtonEl?.addEventListener("click", exportLogsAsCsv);

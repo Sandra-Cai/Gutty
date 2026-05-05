@@ -16,7 +16,7 @@
         }
       } catch (error) {}
     </script>
-    <link rel="stylesheet" href="/styles.css?v=20260505-erase-logs" />
+    <link rel="stylesheet" href="/styles.css?v=20260505-md-upload" />
   </head>
   <body>
     <main class="app-shell">
@@ -401,18 +401,18 @@
             </div>
           </div>
           <label id="importDropZone" class="import-drop-zone" for="importJsonInput">
-            <span>Drop a Gutty JSON file here or choose one from this Mac.</span>
+            <span>Drop a Gutty JSON or Markdown file here, or choose one from this Mac.</span>
             <strong>Private file stays in this browser.</strong>
           </label>
           <div class="control-grid" aria-label="Local data controls">
-            <button id="importJsonButton" type="button" class="secondary">Import JSON</button>
+            <button id="importJsonButton" type="button" class="secondary">Import file</button>
             <button id="exportCsvButton" type="button" class="secondary">Export CSV</button>
             <button id="exportJsonButton" type="button" class="secondary">Export JSON</button>
             <button id="copySummaryButton" type="button" class="secondary">Copy summary</button>
             <button id="doctorReportButton" type="button" class="secondary">Doctor report</button>
             <button id="eraseLogsButton" type="button" class="danger">Erase poop logs</button>
             <button id="resetButton" type="button" class="danger">Clear local data</button>
-            <input id="importJsonInput" type="file" accept="application/json,.json" hidden />
+            <input id="importJsonInput" type="file" accept="application/json,.json,text/markdown,.md,.markdown" hidden />
           </div>
           <p id="dataControlStatus" class="status-pill">Your poop logs are stored in this browser.</p>
         </article>
@@ -483,6 +483,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="/app.js?v=20260505-erase-logs" defer></script>
+    <script src="/app.js?v=20260505-md-upload" defer></script>
   </body>
 </html>
