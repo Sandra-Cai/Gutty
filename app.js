@@ -49,7 +49,7 @@ const resetButtonEl = document.getElementById("resetButton");
 const appContentEl = document.getElementById("appContent");
 const appGateEl = document.getElementById("appGate");
 const authOnlyEls = document.querySelectorAll("[data-auth-only]");
-const publicOnlyEls = document.querySelectorAll("[data-public-only]");
+const publicOnlyEls = document.querySelectorAll("[data-public-only], .hero, .exchange-strip, .market-preview, #appGate");
 const amountButtons = document.querySelectorAll("[data-amount]");
 
 const SIGNUP_STORAGE_KEY = "gutty_signup";
