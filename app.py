@@ -360,45 +360,98 @@ def build_patterns(logs: list[dict[str, Any]]) -> list[dict[str, str]]:
     return patterns[:4]
 
 
-def build_gut_score(logs: list[dict[str, Any]]) -> dict[str, Any]:
+def build_data_quality(logs: list[dict[str, Any]]) -> dict[str, Any]:
+    total = len(logs)
+    detailed_count = total
+    if not logs:
+        return {
+            "level": "Low",
+            "completeness": 0,
+            "detailed_count": 0,
+            "frequency_only_count": 0,
+            "coverage_days": 0,
+            "logs_per_week": 0,
+            "reasons": ["No bowel movement data has been logged yet."],
+        }
+
+    sorted_logs = sorted(logs, key=lambda item: item["logged_at"])
+    first = datetime.fromisoformat(sorted_logs[0]["logged_at"].replace("Z", "+00:00"))
+    last = datetime.fromisoformat(sorted_logs[-1]["logged_at"].replace("Z", "+00:00"))
+    coverage_days = max(1, (last.date() - first.date()).days + 1)
+    logs_per_week = round((total / coverage_days) * 7, 1)
+    reasons = []
+    if detailed_count < 3:
+        reasons.append("Fewer than 3 detailed logs means pattern detection is preliminary.")
+    if 3 <= detailed_count < 14:
+        reasons.append("A stronger baseline usually needs 2 weeks of detailed logs.")
+    if coverage_days >= 14 and logs_per_week < 3:
+        reasons.append("Fewer than 3 bowel movements per week can fit a constipation pattern when paired with hard stools, straining, or incomplete emptying.")
+
+    level = "Low"
+    if detailed_count >= 14:
+        level = "High"
+    elif detailed_count >= 5:
+        level = "Medium"
+
+    return {
+        "level": level,
+        "completeness": 100 if total else 0,
+        "detailed_count": detailed_count,
+        "frequency_only_count": 0,
+        "coverage_days": coverage_days,
+        "logs_per_week": logs_per_week,
+        "reasons": reasons[:3],
+    }
+
+
+def has_urgent_signal(log: dict[str, Any]) -> bool:
+    return bool(log["flags"]) or str(log.get("color", "")).lower() in {"black", "red"}
+
+
+def build_gut_score(logs: list[dict[str, Any]], quality: dict[str, Any]) -> dict[str, Any]:
     if not logs:
         return {
             "score": 50,
             "headline": "Gutty is waiting for the first field report",
-            "summary": "Everyone says trust your gut. First, let us find out whether your gut is behaving like a reliable narrator.",
+            "summary": "The score is not a diagnosis. It gets more reliable when your logs include Bristol type, color, comfort, hydration, food clues, symptoms, and red flags.",
             "next_step": "Log your next poop situation with Bristol type, color, comfort, hydration, fiber, stress, and any red flags.",
         }
 
     recent = logs[:7]
-    score = 82
+    normal_count = sum(1 for log in recent if int(log["bristol_type"]) in {3, 4} and not has_urgent_signal(log))
+    rough_count = sum(1 for log in recent if int(log["bristol_type"]) in {1, 2, 6, 7} or int(log["comfort"]) <= 2 or has_urgent_signal(log))
+    score = 58 + round((normal_count / len(recent)) * 28) - round((rough_count / len(recent)) * 22)
+
     for log in recent:
-        bristol_type = int(log["bristol_type"])
-        if bristol_type in {1, 2, 6, 7}:
-            score -= 5
-        if log["color"] in {"black", "red", "pale"}:
-            score -= 8
-        if log["flags"]:
-            score -= 20
-        score += int(log["hydration"]) - 3
-        score += int(log["fiber"]) - 3
-        score += int(log["comfort"]) - 3
+        score += max(-2, min(2, int(log["hydration"]) - 3))
+        score += max(-2, min(2, int(log["fiber"]) - 3))
+        score += max(-2, min(2, int(log["comfort"]) - 3))
         score -= max(0, int(log["stress"]) - 3)
 
-    score = max(0, min(100, score))
+    if any(has_urgent_signal(log) for log in logs):
+        score = min(score - 30, 45)
+    if quality["level"] == "Low":
+        score = min(score, 64)
+    score = max(0, min(100, round(score)))
+
     latest = recent[0]
-    headline = "Your gut is giving usable data"
-    if latest["flags"]:
-        headline = "Your gut is asking for backup"
-    elif int(latest["bristol_type"]) in {3, 4}:
-        headline = "Your latest log is in the smooth zone"
-    elif int(latest["bristol_type"]) <= 2:
-        headline = "Your latest log leaned hard"
-    elif int(latest["bristol_type"]) >= 6:
-        headline = "Your latest log leaned loose"
+    bristol_type = int(latest["bristol_type"])
+    if has_urgent_signal(latest):
+        headline = "Red-flag signal needs clinician judgment"
+    elif bristol_type in {3, 4}:
+        headline = "Latest stool form is in the expected range"
+    elif bristol_type <= 2:
+        headline = "Latest stool form leans constipated"
+    elif bristol_type >= 6:
+        headline = "Latest stool form leans loose"
+    else:
+        headline = "Your gut is giving usable data"
 
     summary = (
-        f"Latest report: type {latest['bristol_type']} ({latest['bristol_label']}), "
-        f"{latest['color']} color, {latest['amount']} amount, urgency {latest['urgency']}/5."
+        f"Latest detailed report: Bristol type {latest['bristol_type']} ({latest['bristol_label']}), "
+        f"{latest['color']} color, {latest['amount']} amount, urgency {latest['urgency']}/5. "
+        f"Confidence is {quality['level'].lower()} based on {quality['detailed_count']} detailed log"
+        f"{'' if quality['detailed_count'] == 1 else 's'}."
     )
     next_step = "Try one small controlled experiment for the next 24 hours: hydration, fiber, movement, or stress reduction. Change one variable at a time."
     if latest["flags"]:
@@ -450,6 +503,8 @@ def gutty_summary() -> dict[str, Any]:
             )
         ]
 
+    quality = build_data_quality(logs)
+
     return {
         "totals": {
             "log_count": int(totals["log_count"] or 0),
@@ -458,7 +513,8 @@ def gutty_summary() -> dict[str, Any]:
             "avg_comfort": totals["avg_comfort"] or 0,
             "avg_urgency": totals["avg_urgency"] or 0,
         },
-        "gut_score": build_gut_score(logs),
+        "gut_score": build_gut_score(logs, quality),
+        "accuracy": quality,
         "patterns": build_patterns(logs),
         "logs": logs[:20],
         "community": community,

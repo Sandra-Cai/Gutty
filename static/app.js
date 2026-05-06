@@ -8,6 +8,7 @@ const streakCountEl = document.getElementById("streakCount");
 const redFlagCountEl = document.getElementById("redFlagCount");
 const avgBristolEl = document.getElementById("avgBristol");
 const avgComfortEl = document.getElementById("avgComfort");
+const accuracyPanelEl = document.getElementById("accuracyPanel");
 const patternListEl = document.getElementById("patternList");
 const triggerListEl = document.getElementById("triggerList");
 const trendPanelEl = document.getElementById("trendPanel");
@@ -495,6 +496,67 @@ function buildActionPlan(logs, patterns) {
   return [patterns[0]?.detail || "Your latest log is usable baseline data.", "Keep logging at the same level of detail for a few more days.", "If you experiment, make it small: one food, habit, or timing change at a time."];
 }
 
+function buildDataQuality(logs, detailedLogs) {
+  const sorted = [...logs].sort((a, b) => new Date(a.logged_at) - new Date(b.logged_at));
+  const total = logs.length;
+  const detailedCount = detailedLogs.length;
+  const frequencyOnlyCount = Math.max(0, total - detailedCount);
+  const completeness = total ? Math.round((detailedCount / total) * 100) : 0;
+  const firstTime = sorted[0] ? new Date(sorted[0].logged_at).getTime() : 0;
+  const lastTime = sorted[sorted.length - 1] ? new Date(sorted[sorted.length - 1].logged_at).getTime() : 0;
+  const coverageDays = total ? Math.max(1, Math.round((lastTime - firstTime) / 86400000) + 1) : 0;
+  const logsPerWeek = coverageDays ? Number(((total / coverageDays) * 7).toFixed(1)) : 0;
+  const reasons = [];
+
+  if (!total) reasons.push("No bowel movement data has been logged yet.");
+  if (frequencyOnlyCount) reasons.push(`${frequencyOnlyCount} imported entr${frequencyOnlyCount === 1 ? "y has" : "ies have"} timing only, so Gutty cannot judge stool form, color, pain, fever, hydration, or food triggers from those records.`);
+  if (detailedCount < 3) reasons.push("Fewer than 3 detailed logs means pattern detection is preliminary.");
+  if (detailedCount >= 3 && detailedCount < 14) reasons.push("A stronger baseline usually needs 2 weeks of detailed logs.");
+  if (coverageDays >= 14 && logsPerWeek < 3) reasons.push("Fewer than 3 bowel movements per week can fit a constipation pattern when paired with hard stools, straining, or incomplete emptying.");
+
+  let level = "Low";
+  if (detailedCount >= 14 && completeness >= 70) level = "High";
+  else if (detailedCount >= 5 || (total >= 14 && completeness >= 35)) level = "Medium";
+
+  return {
+    level,
+    completeness,
+    detailed_count: detailedCount,
+    frequency_only_count: frequencyOnlyCount,
+    coverage_days: coverageDays,
+    logs_per_week: logsPerWeek,
+    reasons: reasons.slice(0, 3),
+  };
+}
+
+function hasUrgentSignal(log) {
+  const color = String(log.color || "").toLowerCase();
+  const flags = log.flags || [];
+  return flags.length > 0 || ["black", "red"].includes(color);
+}
+
+function scoreDetailedLogs(recent, quality, redFlagCount, streak) {
+  if (!recent.length) return 50;
+
+  const normalCount = recent.filter((log) => [3, 4].includes(Number(log.bristol_type)) && !hasUrgentSignal(log)).length;
+  const roughCount = recent.filter((log) => [1, 2, 6, 7].includes(Number(log.bristol_type)) || Number(log.comfort) <= 2 || hasUrgentSignal(log)).length;
+  const normalRatio = normalCount / recent.length;
+  const roughRatio = roughCount / recent.length;
+  let score = 58 + Math.round(normalRatio * 28) - Math.round(roughRatio * 22);
+
+  recent.forEach((log) => {
+    score += Math.max(-2, Math.min(2, Number(log.hydration || 3) - 3));
+    score += Math.max(-2, Math.min(2, Number(log.fiber || 3) - 3));
+    score += Math.max(-2, Math.min(2, Number(log.comfort || 3) - 3));
+    score -= Math.max(0, Number(log.stress || 3) - 3);
+  });
+
+  if (redFlagCount) score = Math.min(score - 30, 45);
+  if (quality.level === "Low") score = Math.min(score, 64);
+  if (quality.level === "High" && streak >= 3 && !redFlagCount) score += 5;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 function buildLocalSummary() {
   const logs = localLogs().sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
   const detailedLogs = logs.filter(isDetailedLog);
@@ -505,29 +567,21 @@ function buildLocalSummary() {
   const latest = logs[0];
   const redFlagCount = logs.reduce((sum, log) => sum + (log.flags?.length || 0), 0);
   const streak = calculateStreak(logs);
+  const quality = buildDataQuality(logs, detailedLogs);
   let score = 50;
   let headline = "Gutty is waiting for the first field report";
-  let summary = "Everyone says trust your gut. First, let us find out whether your gut is behaving like a reliable narrator.";
+  let summary = "The score is not a diagnosis. It gets more reliable when your logs include Bristol type, color, comfort, hydration, food clues, symptoms, and red flags.";
   let nextStep = "Log your next poop situation with Bristol type, color, comfort, hydration, fiber, stress, and any red flags.";
 
   if (latest) {
-    score = detailedLogs.length ? 82 : 72;
-    recent.forEach((log) => {
-      if ([1, 2, 6, 7].includes(Number(log.bristol_type))) score -= 5;
-      if (["black", "red", "pale"].includes(log.color)) score -= 8;
-      if (log.flags?.length) score -= 20;
-      score += Number(log.hydration) - 3 + Number(log.fiber) - 3 + Number(log.comfort) - 3;
-      score -= Math.max(0, Number(log.stress) - 3);
-    });
-    score = Math.max(0, Math.min(100, score));
-    if (streak >= 3) score = Math.min(100, score + 4);
+    score = detailedLogs.length ? scoreDetailedLogs(recent, quality, redFlagCount, streak) : Math.min(58, 46 + Math.min(12, logs.length));
     if (isDetailedLog(latest)) {
-      headline = latest.flags?.length ? "Your gut is asking for backup" : [3, 4].includes(Number(latest.bristol_type)) ? "Your latest log is in the smooth zone" : Number(latest.bristol_type) <= 2 ? "Your latest log leaned hard" : Number(latest.bristol_type) >= 6 ? "Your latest log leaned loose" : "Your gut is giving usable data";
-      summary = `Latest report: type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color} color, ${latest.amount} amount, urgency ${latest.urgency}/5.`;
+      headline = hasUrgentSignal(latest) ? "Red-flag signal needs clinician judgment" : [3, 4].includes(Number(latest.bristol_type)) ? "Latest stool form is in the expected range" : Number(latest.bristol_type) <= 2 ? "Latest stool form leans constipated" : Number(latest.bristol_type) >= 6 ? "Latest stool form leans loose" : "Your gut is giving usable data";
+      summary = `Latest detailed report: Bristol type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color} color, ${latest.amount} amount, urgency ${latest.urgency}/5. Confidence is ${quality.level.toLowerCase()} based on ${quality.detailed_count} detailed log${quality.detailed_count === 1 ? "" : "s"}.`;
       nextStep = latest.flags?.length ? "Red flags beat experiments. Consider contacting a medical professional, especially for blood, tarry black stool, severe pain, fever, or dehydration." : "Try one small controlled experiment for the next 24 hours: hydration, fiber, movement, or stress reduction. Change one variable at a time.";
     } else {
-      headline = "Your historical rhythm is loaded";
-      summary = `Latest imported entry: ${new Date(latest.logged_at).toLocaleDateString()}. These older records track frequency only.`;
+      headline = "Historical rhythm loaded, clinical confidence is low";
+      summary = `Latest imported entry: ${new Date(latest.logged_at).toLocaleDateString()}. These older records can support frequency and gap analysis only, not stool quality or diagnosis.`;
       nextStep = "Use the imported history for rhythm and gap analysis, then log Bristol type, comfort, color, and symptoms going forward.";
     }
   }
@@ -545,6 +599,7 @@ function buildLocalSummary() {
       last_log: daysAgoLabel(latest?.logged_at),
     },
     gut_score: { score, headline, summary, next_step: nextStep },
+    accuracy: quality,
     patterns,
     action_plan: buildActionPlan(logs, patterns),
     triggers: buildTriggerInsights(logs),
@@ -553,6 +608,24 @@ function buildLocalSummary() {
     logs: logs.slice(0, 20),
     community: community.slice(0, 12),
   };
+}
+
+function renderAccuracy(accuracy) {
+  if (!accuracyPanelEl || !accuracy) return;
+
+  accuracyPanelEl.innerHTML = `
+    <div class="accuracy-head">
+      <span class="label">Evidence quality</span>
+      <strong>${escapeHtml(accuracy.level)} confidence</strong>
+    </div>
+    <div class="accuracy-grid">
+      <span><b>${accuracy.detailed_count}</b> detailed logs</span>
+      <span><b>${accuracy.frequency_only_count}</b> timing-only</span>
+      <span><b>${accuracy.completeness}%</b> complete</span>
+      <span><b>${accuracy.logs_per_week}</b> logs/week</span>
+    </div>
+    <p>${escapeHtml(accuracy.reasons[0] || "Gutty has enough detail to compare recent stool form, symptoms, comfort, and red flags.")}</p>
+  `;
 }
 
 function buildLocalPatterns(recent) {
@@ -664,6 +737,7 @@ function renderSummary(data) {
   redFlagCountEl.textContent = String(data.totals.red_flag_count || 0);
   avgBristolEl.textContent = String(data.totals.avg_bristol);
   avgComfortEl.textContent = String(data.totals.avg_comfort);
+  renderAccuracy(data.accuracy);
   renderPatterns(data.patterns);
   renderTriggerInsights(data.triggers);
   renderTrendSnapshot(data.trends);
@@ -891,7 +965,8 @@ async function copyClinicianSummary() {
     `Red flags marked: ${summary.totals.red_flag_count}`,
     `Average Bristol: ${summary.totals.avg_bristol}`,
     `Average comfort: ${summary.totals.avg_comfort}`,
-    latest ? `Latest: type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color}, ${latest.amount}, urgency ${latest.urgency}/5, comfort ${latest.comfort}/5.` : "Latest: no logs yet.",
+    `Evidence quality: ${summary.accuracy.level} confidence (${summary.accuracy.detailed_count} detailed, ${summary.accuracy.frequency_only_count} timing-only, ${summary.accuracy.completeness}% complete)`,
+    latest && isDetailedLog(latest) ? `Latest: type ${latest.bristol_type} (${latest.bristol_label}), ${latest.color}, ${latest.amount}, urgency ${latest.urgency}/5, comfort ${latest.comfort}/5.` : latest ? `Latest: timing-only entry from ${new Date(latest.logged_at).toLocaleDateString()}.` : "Latest: no logs yet.",
     `Current note: ${summary.gut_score.next_step}`,
   ].join("\n");
 
@@ -917,6 +992,15 @@ function downloadDoctorReport() {
     `- Red flags marked: ${summary.totals.red_flag_count}`,
     `- Average Bristol: ${summary.totals.avg_bristol}`,
     `- Average comfort: ${summary.totals.avg_comfort}`,
+    `- Gut Check score: ${summary.gut_score.score}/100`,
+    `- Evidence quality: ${summary.accuracy.level} confidence`,
+    `- Detailed logs: ${summary.accuracy.detailed_count}`,
+    `- Timing-only imported logs: ${summary.accuracy.frequency_only_count}`,
+    `- Completeness: ${summary.accuracy.completeness}%`,
+    `- Logs per week: ${summary.accuracy.logs_per_week}`,
+    "",
+    "What the data can support",
+    ...(summary.accuracy.reasons.length ? summary.accuracy.reasons.map((item) => `- ${item}`) : ["- Recent logs include enough detail for short-term pattern comparison, but not diagnosis."]),
     "",
     "Possible trigger overlaps",
     ...(summary.triggers.length ? summary.triggers.map((item) => `- ${titleCase(item.name)}: ${item.rough}/${item.total} rough logs`) : ["- Not enough food clue data yet"]),

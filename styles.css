@@ -965,10 +965,57 @@ button:hover,
 }
 
 
+.accuracy-panel,
 .trigger-list,
 .trend-panel,
 .heatmap-panel {
   margin-top: 18px;
+}
+
+.accuracy-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(157, 241, 132, 0.35);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(157, 241, 132, 0.1), rgba(10, 13, 16, 0.96));
+}
+
+.accuracy-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.accuracy-head strong {
+  color: var(--green);
+  text-align: right;
+}
+
+.accuracy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.accuracy-grid span {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.accuracy-grid b {
+  display: block;
+  color: var(--text);
+  font-size: 1.2rem;
+}
+
+.accuracy-panel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
 }
 
 .insight-box {

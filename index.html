@@ -16,7 +16,7 @@
         }
       } catch (error) {}
     </script>
-    <link rel="stylesheet" href="/styles.css?v=20260505-md-upload" />
+    <link rel="stylesheet" href="/styles.css?v=20260505-accuracy" />
   </head>
   <body>
     <main class="app-shell">
@@ -327,6 +327,7 @@
             <p class="kicker">Analyzer</p>
             <h2>What Gutty noticed</h2>
           </div>
+          <div id="accuracyPanel" class="accuracy-panel" aria-label="Analysis confidence"></div>
           <div id="patternList" class="pattern-list"></div>
           <div id="triggerList" class="trigger-list" aria-label="Possible trigger patterns"></div>
           <div id="trendPanel" class="trend-panel" aria-label="Trend snapshot"></div>
@@ -483,6 +484,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="/app.js?v=20260505-md-upload" defer></script>
+    <script src="/app.js?v=20260505-accuracy" defer></script>
   </body>
 </html>

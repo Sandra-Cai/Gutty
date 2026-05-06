@@ -1,5 +1,11 @@
 # Gutty Feature Log
 
+## 2026-05-05 - Confidence-aware Health Scoring
+
+- Added an evidence-quality panel so uploaded logs are graded by detailed logs, timing-only imports, completeness, coverage, and logs per week.
+- Changed Gut Check scoring so frequency-only uploads no longer look medically healthy by default; they are labeled as low clinical confidence until users add Bristol type, color, comfort, symptoms, and red flags.
+- Updated analysis language to separate pattern tracking from diagnosis and to prioritize clinician review for blood, black/tarry stool, severe pain, fever, or dehydration.
+
 ## 2026-05-05
 
 - Added an on-page **Erase poop logs** control under Data controls.
