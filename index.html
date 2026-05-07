@@ -16,7 +16,7 @@
         }
       } catch (error) {}
     </script>
-    <link rel="stylesheet" href="/styles.css?v=20260505-accuracy" />
+    <link rel="stylesheet" href="/styles.css?v=20260507-import-audit" />
   </head>
   <body>
     <main class="app-shell">
@@ -405,6 +405,7 @@
             <span>Drop a Gutty JSON or Markdown file here, or choose one from this Mac.</span>
             <strong>Private file stays in this browser.</strong>
           </label>
+          <div id="importAudit" class="import-audit" hidden></div>
           <div class="control-grid" aria-label="Local data controls">
             <button id="importJsonButton" type="button" class="secondary">Import file</button>
             <button id="exportCsvButton" type="button" class="secondary">Export CSV</button>
@@ -484,6 +485,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="/app.js?v=20260505-accuracy" defer></script>
+    <script src="/app.js?v=20260507-import-audit" defer></script>
   </body>
 </html>

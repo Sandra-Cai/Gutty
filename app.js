@@ -36,6 +36,7 @@ const actionPlanEl = document.getElementById("actionPlan");
 const importJsonButtonEl = document.getElementById("importJsonButton");
 const importJsonInputEl = document.getElementById("importJsonInput");
 const importDropZoneEl = document.getElementById("importDropZone");
+const importAuditEl = document.getElementById("importAudit");
 const vaultLogCountEl = document.getElementById("vaultLogCount");
 const vaultImportedCountEl = document.getElementById("vaultImportedCount");
 const vaultLastImportEl = document.getElementById("vaultLastImport");
@@ -176,6 +177,30 @@ function isFrequencyOnlyLog(log) {
   return !isDetailedLog(log);
 }
 
+function renderImportAudit(imports) {
+  if (!importAuditEl) return;
+  const latest = imports[0];
+  if (!latest) {
+    importAuditEl.innerHTML = "";
+    importAuditEl.hidden = true;
+    return;
+  }
+
+  importAuditEl.hidden = false;
+  importAuditEl.innerHTML = `
+    <div>
+      <span class="label">Last upload audit</span>
+      <strong>${escapeHtml(latest.filename || "Imported file")}</strong>
+      <p>${escapeHtml(latest.audit_note || "Gutty checked the upload quality.")}</p>
+    </div>
+    <div class="audit-metrics">
+      <span><b>${latest.detailed_count || 0}</b> detailed</span>
+      <span><b>${latest.timing_only_count || 0}</b> timing-only</span>
+      <span><b>${latest.added_count || 0}</b> new</span>
+    </div>
+  `;
+}
+
 function updateVaultStatus(message) {
   const logs = localLogs();
   const imports = importHistory();
@@ -185,6 +210,7 @@ function updateVaultStatus(message) {
   if (vaultLastImportEl) {
     vaultLastImportEl.textContent = imports[0]?.created_at ? new Date(imports[0].created_at).toLocaleString() : "Never";
   }
+  renderImportAudit(imports);
   if (message && dataControlStatusEl) dataControlStatusEl.textContent = message;
 }
 
@@ -1102,6 +1128,22 @@ function parseMarkdownPoopLog(markdown, filename = "Markdown file") {
   };
 }
 
+function buildImportAudit(logs) {
+  const detailedCount = logs.filter(isDetailedLog).length;
+  const timingOnlyCount = logs.length - detailedCount;
+  const auditNote = timingOnlyCount && !detailedCount
+    ? "This upload can support frequency and gap review only. Add Bristol type, color, comfort, symptoms, and red flags for stronger analysis."
+    : timingOnlyCount
+      ? "Mixed upload: detailed entries can inform patterns, timing-only entries are used only for rhythm and gaps."
+      : "Detailed upload: Gutty can compare stool form, comfort, symptoms, red flags, and possible triggers.";
+
+  return {
+    detailed_count: detailedCount,
+    timing_only_count: timingOnlyCount,
+    audit_note: auditNote,
+  };
+}
+
 function normalizeImportedLog(entry, index) {
   const loggedAt = normalizedLogDate(entry);
   const detailed = isDetailedLog(entry);
@@ -1132,12 +1174,14 @@ async function importLogsFromJson(payload, filename = "JSON file") {
   const existing = localLogs();
   const beforeCount = existing.length;
   const byKey = new Map(existing.map((log) => [log.id || `${log.logged_at}-${log.source}`, log]));
-  incoming.map(normalizeImportedLog).forEach((log) => {
+  const normalized = incoming.map(normalizeImportedLog);
+  normalized.forEach((log) => {
     byKey.set(log.id || `${log.logged_at}-${log.source}`, log);
   });
   const merged = Array.from(byKey.values()).sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at));
   writeStorage(LOG_STORAGE_KEY, merged);
   const added = Math.max(0, merged.length - beforeCount);
+  const audit = buildImportAudit(normalized);
   const history = importHistory();
   history.unshift({
     filename,
@@ -1145,9 +1189,10 @@ async function importLogsFromJson(payload, filename = "JSON file") {
     incoming_count: incoming.length,
     added_count: added,
     total_count: merged.length,
+    ...audit,
   });
   writeStorage(IMPORT_HISTORY_STORAGE_KEY, history.slice(0, 12));
-  updateVaultStatus(`Imported ${incoming.length} entries from ${filename}. Added ${added} new logs. Browser total: ${merged.length}.`);
+  updateVaultStatus(`${audit.audit_note} Imported ${incoming.length} entries from ${filename}. Added ${added} new logs. Browser total: ${merged.length}.`);
   await fetchSummary();
 }
 

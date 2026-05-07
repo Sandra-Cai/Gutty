@@ -1,5 +1,11 @@
 # Gutty Feature Log
 
+## 2026-05-07 - Upload Quality Audit
+
+- Added a last-upload audit under Data controls so users can see whether an import contained detailed stool data or timing-only entries.
+- Import history now stores detailed count, timing-only count, added count, and a plain-language note about what the upload can support.
+- Import status messages now explain when Gutty can only analyze frequency/gaps versus richer stool-form patterns.
+
 ## 2026-05-05 - Confidence-aware Health Scoring
 
 - Added an evidence-quality panel so uploaded logs are graded by detailed logs, timing-only imports, completeness, coverage, and logs per week.
